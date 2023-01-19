@@ -1,0 +1,27 @@
+# ------------
+# Dev Dependencies
+
+# These are the dependencies that are typically only required in the development
+# environment like formatters or linters. They are not typically required in
+# production.
+
+# ---------
+# Make sure we have the latest tools
+
+pip
+setuptools
+wheel
+
+# ----------
+# Quality Control and Build Dependencies - Virtual Environment Only
+
+# ----------
+# Unit Tests
+
+pytest
+
+# ----------
+# Formatters
+
+black
+
