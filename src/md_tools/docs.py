@@ -35,10 +35,10 @@ console = Console()
 # ------------
 # Custom Modules
 
-from .stats import stats
-from .graph import graph
 from .validate import validate
-from .repair import repair
+# from .repair import repair
+# from .stats import stats
+# from .graph import graph
 
 
 
@@ -67,7 +67,7 @@ def main(*args, **kwargs):
 
     $ docs repair --dry-run headers ./doc/root
 
-    $ docs  repair --dry-run headers --list ./doc/root
+    $ docs repair --dry-run headers --list ./doc/root
 
     $ docs repair headers --list ./doc/root
 
@@ -85,7 +85,7 @@ def main(*args, **kwargs):
 # --------
 # Commands
 
-main.add_command(stats)
-main.add_command(graph)
 main.add_command(validate)
-main.add_command(repair)
+# main.add_command(stats)
+# main.add_command(graph)
+# main.add_command(repair)

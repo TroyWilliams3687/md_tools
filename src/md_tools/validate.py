@@ -19,9 +19,11 @@ system for issues. The `repair` command can fix some of the issues.
 # ------------
 # System Modules - Included with Python
 
-from datetime import datetime
-from multiprocessing import Pool
-from functools import partial
+# from datetime import datetime
+# from multiprocessing import Pool
+# from functools import partial
+
+from pathlib import Path
 
 # ------------
 # 3rd Party - From pip
@@ -35,16 +37,25 @@ console = Console()
 # Custom Modules
 
 
-from ..documentos.document_validation import (
-    validate_urls,
-    validate_images,
-)
+# from ..documentos.document_validation import (
+#     validate_urls,
+#     validate_images,
+# )
 
 # -------------
 
 
-@click.group("validate")
+@click.command("validate")
 @click.pass_context
+@click.argument(
+    "root_path",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        readable=True,
+        path_type=Path,
+    ),
+)
 def validate(*args, **kwargs):
     """
     Perform validation checks for Markdown files and LST files.
@@ -53,27 +64,10 @@ def validate(*args, **kwargs):
 
     $ docs validate ./doc/root
 
+    $ docs validate /home/troy/repositories/documentation/aegis.documentation.sphinx/docs/source
+
     """
     # config = args[0].obj["cfg"]
-
-    # # ----------------
-    # # Find all of the markdown files and lst files
-
-    # console.print("Searching for markdown and LST files...")
-
-    # config["md_file_contents"] = search(root=config["documents.path"])
-    # config["lst_file_contents"] = search(
-    #     root=config["documents.path"],
-    #     extension=".lst",
-    #     document=LSTDocument,
-    # )
-
-    # console.print(f'{len(config["md_file_contents"])} Markdown files were found...')
-    # console.print(f'{len(config["lst_file_contents"])} LST files were found...')
-    # console.print("")
-
-    # args[0].obj["cfg"] = config
-
 
     # ------------
     # Build code that uses pathlib.path.rglob to recursively find all markdown files
@@ -96,7 +90,61 @@ def validate(*args, **kwargs):
 
     # perhaps use my markdown object - it might be easier. The key is to write the file line number
 
-    pass
+    ctx = args[0]
+
+    filepath = kwargs['root_path'].expanduser().resolve()
+
+    console.print(f'Searching: {filepath}')
+
+    if filepath.is_file():
+        console.print('[red]Root path has to be a directory.[/red]')
+        ctx.abort()
+
+    # Store a reference to the Markdown files
+    markdown_files = set()
+
+    # ----
+    # All files are considered assets, including the markdown files. The
+    # assets are simply things that can be the target of a link. The
+    # key will be the filename and the target a list of Path objects
+    # representing files with the same name, but in different paths.
+
+    # NOTE: When using the stored paths, they need to be relative to the
+    # root folder
+
+    asset_files = {}
+
+
+    for filename in filepath.rglob("*"):
+
+        console.print(f'[cyan]{filename}[/cyan]')
+        asset_files.setdefault(filename.name, [] ).append(filename)
+
+        if filename.suffix == '.md':
+
+            console.print(f'[green]MARKDOWN: {filename}[/green]')
+            markdown_files.add(filename)
+
+            # Go through the markdown file and find the links and image links
+
+
+    # Convert the dict counts to strings and find the length so we can
+    # use the value to format the numbers to line up properly f'{value:
+    # {width}.{precision}}' Since this is for formatting and display, I
+    # am not bothering with anything fancier
+
+    width = max(len(str(len(markdown_files))), len(str(len(asset_files))))
+
+    console.print('Discovered:')
+    console.print(f'Markdown files: {len(markdown_files):>{width}}')
+    console.print(f'All files:      {len(asset_files):>{width}}')
+
+
+
+
+
+
+
 
 
 # def multiprocessing_wrapper(root, md):
