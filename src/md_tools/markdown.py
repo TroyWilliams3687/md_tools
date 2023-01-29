@@ -22,7 +22,7 @@ import re
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Optional, NamedTuple
 
 
 # ------------
@@ -39,6 +39,8 @@ from .markdown_classifiers import (
     MarkdownLinkRule,
     MDFence,
     RelativeMarkdownURLRule,
+    MarkdownLinkRuleResult,
+    # RelativeMarkdownURLRuleResult,
 )
 
 
@@ -59,8 +61,26 @@ atx_rules = [
 md_link_rule = MarkdownLinkRule()
 md_attribute_syntax_rule = MarkdownAttributeSyntax()
 
+# ----
+# Define some named tuples to handle return types
+# https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
-def find_atx_header(line, **kwargs):
+
+class ATXHeaderResult(NamedTuple):
+    """
+    A result object from searching a line of text for an ATX header.
+
+    line - The line number associated with the header result. Defaults to None.
+    level - this is the header level from 1 to 6
+    text - this is the text of the header line
+
+    """
+    level: int
+    text: str
+    line_number: Optional[int] = None
+
+
+def find_atx_header(line:str, line_number:Optional[int]=None) -> Optional[ATXHeaderResult]:
     """
 
     Determine if the line is an ATX header or not. If it is an ATX
@@ -69,8 +89,7 @@ def find_atx_header(line, **kwargs):
 
     # Parameters
 
-    line:str
-        - The string to check for an ATX header.
+    line - The string to check for an ATX header.
 
     # Return
 
@@ -84,15 +103,22 @@ def find_atx_header(line, **kwargs):
 
     """
 
+    if len(line) == 0:
+        return None
+
     for rule in atx_rules:
 
         if rule.match(line):
-            return rule.atx_count, rule.extract_data(line)
+            return ATXHeaderResult(
+                level=rule.atx_count,
+                text=rule.extract_data(line),
+                line_number=line_number,
+            )
 
     return None
 
 
-def find_all_atx_headers(contents, **kwargs):
+def find_all_atx_headers(contents:str, **kwargs) -> list[tuple]:
     """
     Given a list of strings representing the contents of a markdown
     file, return a list of section headers.
@@ -126,119 +152,17 @@ def find_all_atx_headers(contents, **kwargs):
 
     for i, line in markdown_outside_fence(contents):
 
-        result = find_atx_header(line)
+        result = find_atx_header(line, line_number=i)
 
         if result:
-            if include_line_numbers:
-                result = (i, *result)
-
             headers.append(result)
 
     return headers
 
 
-def section_to_anchor(s):
-    """
-    Given the text of an ATX header, construct a valid anchor from it.
-    NOTE: it is expecting the text of the ATX header and not the syntax
-    defining the ATX header i.e. it shouldn't contain leading #.
-
-    From [Pandoc]
-    (https://pandoc.org/MANUAL.html#extension-auto_identifiers):
-
-    ```
-    The default algorithm used to derive the identifier from the
-    heading text is:
-
-    - Remove all formatting, links, etc.
-    - Remove all footnotes.
-    - Remove all non-alphanumeric characters, except underscores,
-      hyphens, and periods.
-    - Replace all spaces and newlines with hyphens.
-    - Convert all alphabetic characters to lowercase.
-    - Remove everything up to the first letter (identifiers may not
-      begin with a number or punctuation mark).
-    - If nothing is left after this, use the identifier section.
-
-    Thus, for example,
-    Heading                         Identifier
-    Heading identifiers in HTML     heading-identifiers-in-html
-    Maître d'hôtel                  maître-dhôtel
-    *Dogs*?--in *my* house?         dogs--in-my-house
-    [HTML], [S5], or [RTF]?         html-s5-or-rtf
-    3. Applications                 applications
-    33                              section
-
-    Preamble {#sec:ch0_0_preamble-1}  sec:ch0_0_preamble-1
-    ```
-
-    These anchors can be used in links:
-    ```
-    See the section on
-    [heading identifiers](#heading-identifiers-in-html-latex-and-context).
-    ```
-
-    # NOTE
-
-    Pandoc Extension: gfm_auto_identifiers
-
-    Changes the algorithm used by auto_identifiers to conform to
-    GitHub’s method. Spaces are converted to dashes (-), uppercase
-    characters to lowercase characters, and punctuation characters
-    other than - and _ are removed.
-
-    We'll stick with the basics (for now).
-
-    Reference:
-
-    - https://stackoverflow.com/questions/1007481/how-do-i-replace-whitespaces-with-underscore
-
-    Could use some slugify methods:
-
-    - https://github.com/un33k/python-slugify
-
-    """
-
-    # Is there header attribute syntax?
-
-    # https://pandoc.org/MANUAL.html#extension-fenced_code_attributes
-    # 'Equations {#sec:ch0_2_equations-1}' <- handle this case
-    #  with "header attribute syntax" We are looking for
-    #  {#sec:ch0_2} the hashtag identifier that denotes a section name,
-    #  just return this if it is found... NOTE: There should only be
-    #  one match, so we return the first match
-
-    if md_attribute_syntax_rule.match(s):
-        for r in md_attribute_syntax_rule.extract_data(s):
-            return r["id"]
-
-    # Do we have markdown links?
-    # [pandoc-fignos](https://github.com/tomduck/pandoc-fignos) Usage
-
-    if md_link_rule.match(s):
-        for r in md_link_rule.extract_data(s):
-            s = s.replace(r["full"], r["text"])
-
-    # Convert all alphabetic characters to lowercase and remove trailing
-    # and leading spaces
-
-    s = s.lower()
-
-    # Replace all spaces and newlines with hyphens.
-
-    s = re.sub(r"\s+", "-", s)
-
-    # Remove all non-alphanumeric characters, except underscores,
-    # hyphens, and periods.
-
-    s = re.sub(r"[^\w_\-.]", "", s)
-
-    # we could probably do more, but let's leave it here for now....
-
-    return s
 
 
-def extract_markdown_links(line, **kwargs):
+def extract_markdown_links(line:str) -> Optional[list[MarkdownLinkRuleResult]]:
     """
 
     Given a line, return all of the markdown links. The markdown links
@@ -253,8 +177,7 @@ def extract_markdown_links(line, **kwargs):
 
     # Parameters
 
-    line:str
-        - The text string to analyze for markdown links
+    line - The text string to analyze for markdown links
 
     # Return
 
@@ -263,10 +186,8 @@ def extract_markdown_links(line, **kwargs):
     - (This is a link)[../file.md#section_title]
     - [text](link)
 
-    This method will return a list of dictionaries keyed as follows:
-
-    A list containing dictionaries representing each match. The
-    dictionary contains the following keys:
+    This method will return a list of MarkdownLinkRuleResult objects
+    with the following attributes:
 
     - `full` - The full regex match - [text](link)
     - `text` - The text portion of the markdown link
@@ -282,104 +203,122 @@ def extract_markdown_links(line, **kwargs):
     """
 
     link_rule = MarkdownLinkRule()
+    relative_rule = RelativeMarkdownURLRule()
 
     matches = []
 
     if link_rule.match(line.strip()):
 
-        matches = link_rule.extract_data(line.strip())
+        for r in link_rule.extract_data(line.strip()):
+
+            link = MarkdownLinkRuleResult(
+                full=r.full,
+                text=r.text,
+                url=r.url,
+            )
+
+
+            if relative_rule.match(r.url):
+
+                link = MarkdownLinkRuleResult(
+                    full=link.full,
+                    text=link.text,
+                    url=link.url,
+                    relative=relative_rule.extract_data(r.url),
+                )
+
+
+            matches.append(link)
+
 
     return matches
 
 
-def extract_relative_markdown_links(line, **kwargs):
-    """
 
-    Given a line, check to see if it contains a relative markdown link.
-    The relative markdown link will look like
-    `../file.md#section_title`
+# def extract_relative_markdown_links(line:str, **kwargs) -> Optional[list[MarkdownLinkRuleResult]]:
+#     """
 
-    This method will return a list of link dictionaries for each link
-    found in the line.
+#     Given a line, check to see if it contains a relative markdown link.
+#     The relative markdown link will look like
+#     `../file.md#section_title`
 
-
-    # Parameters
-
-    line:str
-        - The text string to analyze for markdown links
-
-    # Return
-
-    A list containing dictionaries representing each match. The
-    dictionary contains the following keys:
-
-    - `md` -           The string representing the link.
-    - `section` -      The string representing the section anchor, if
-      any.
-    - `md_span` -      A tuple(start, end) Containing the starting and
-      ending position of the markdown link match in the string
-    - `section_span` - A tuple(start, end) Containing the starting and
-      ending position of the section anchor match in the string
-
-    # Note
-
-    The line classifier rules perform memoization and should be
-    instantiated above the loop that calls this method. I don't expect
-    many duplicate lines so this optimization is not necessary. Mostly
-    it is about the match and the extract data
-
-    """
-
-    matches = []
-
-    relative_rule = RelativeMarkdownURLRule()
-
-    for r in extract_markdown_links(line):
-
-        url = r["url"]
-
-        if relative_rule.match(url):
-            matches.append(relative_rule.extract_data(url))
-
-    return matches
+#     This method will return a list of link dictionaries for each link
+#     found in the line.
 
 
-def extract_markdown_image_links(line, **kwargs):
-    """
+#     # Parameters
 
-    Given a line, return all of the markdown image links. The markdown
-    image links will be of the form:
+#     line - The text string to analyze for markdown links
 
-    ![image caption](URL).
+#     # Return
 
-    Returns a list of dictionaries representing the image links.
+#     A list containing RelativeMarkdownURLRuleResult objects representing each match:
 
-    # Parameters
+#     - full-  Full text match
+#     - md - The string representing the link.
+#     - section -      The string representing the section anchor, if any.
+#     - md_span -      A tuple(start, end) Containing the starting and ending position of the markdown link match in the string
+#     - section_span - A tuple(start, end) Containing the starting and ending position of the section anchor match in the string and ending position of the section anchor match in the string
 
-    line:str
-        - The text string to analyze for markdown links
+#     # Note
 
-    # Return
+#     The line classifier rules perform memoization and should be
+#     instantiated above the loop that calls this method. I don't expect
+#     many duplicate lines so this optimization is not necessary. Mostly
+#     it is about the match and the extract data
 
-    A list of dictionaries keyed by:
+#     """
 
-    - `caption` - The image caption portion of the link -> !
-      [image caption](URL)
-    - `image` - The url to the image
+#     matches = []
 
-    """
+#     relative_rule = RelativeMarkdownURLRule()
 
-    image_rule = MarkdownImageRule()
+#     for r in extract_markdown_links(line):
 
-    # Contains a valid markdown link?
-    if image_rule.match(line.strip()):
+#         url = r.url
 
-        return image_rule.extract_data(line.strip())
+#         if relative_rule.match(url):
+#             # matches.append(relative_rule.extract_data(url))
 
-    return []
+#             matches.append(MarkdownLinkRuleResult(*r, relative=relative_rule.extract_data(url)))
+
+#     return matches
 
 
-def extract_relative_markdown_image_links(line, **kwargs):
+# def extract_markdown_image_links(line:str) -> Optional[list[MarkdownImageRuleResult]]:
+#     """
+
+#     Given a line, return all of the markdown image links. The markdown
+#     image links will be of the form:
+
+#     ![image caption](URL).
+
+#     Returns a list of dictionaries representing the image links.
+
+#     # Parameters
+
+#     line:- The text string to analyze for markdown links
+
+#     # Return
+
+#     A list of dictionaries keyed by:
+
+#     - `caption` - The image caption portion of the link -> ![image caption](URL)
+#     - `image` - The url to the image
+
+#     """
+
+#     image_rule = MarkdownImageRule()
+
+#     # Contains a valid markdown link?
+#     if image_rule.match(line.strip()):
+
+#         return image_rule.extract_data(line.strip())
+
+#     return []
+
+
+def extract_markdown_image_links(line:str) -> Optional[list[MarkdownLinkRuleResult]]:
     """
 
     Given a line, return all of the markdown image links that are
@@ -401,23 +340,39 @@ def extract_relative_markdown_image_links(line, **kwargs):
 
     - `caption` - The image caption portion of the link -> !
       [image caption](URL)
-    - `image` - The url to the image
+    - `url` - The url to the image
 
     """
 
+    image_rule = MarkdownImageRule()
     relative_rule = RelativeMarkdownURLRule()
 
     matches = []
 
-    for m in extract_markdown_image_links(line):
+    if image_rule.match(line.strip()):
 
-        if relative_rule.match(m["url"]):
+        for r in image_rule.extract_data(line.strip()):
 
-            result = relative_rule.extract_data(m["url"])
+            link = MarkdownLinkRuleResult(
+                full=r.full,
+                text=r.text,
+                url=r.url,
+            )
 
-            matches.append(result | m)
+            if relative_rule.match(link.url):
+
+                link = MarkdownLinkRuleResult(
+                    full=link.full,
+                    text=link.text,
+                    url=link.url,
+                    relative=relative_rule.extract_data(link.url),
+                )
+
+            matches.append(link)
 
     return matches
+
+
 
 
 def adjust_markdown_links(line, md_file, **kwargs):

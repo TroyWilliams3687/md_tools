@@ -23,10 +23,66 @@ a string representing a line in a markdown file.
 import re
 
 from abc import ABC, abstractmethod, abstractproperty
+from typing import Optional, NamedTuple
+
 
 # ------------
 
+class RelativeMarkdownURLRuleResult(NamedTuple):
+    """
+    # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
+    The result of a RelativeMarkdownURLRule match
+
+    full-  Full text match
+    md - The string representing the link.
+    section - The string representing the section anchor, if any.
+    md_span -  A tuple(start, end) Containing the starting and ending position of the markdown link match in the string
+    section_span - A tuple(start, end) Containing the starting and ending position of the section anchor match in the string
+
+    """
+    full:str
+    md:str
+    section:str
+    # md_span:tuple[int,int]
+    # section_span:tuple[int,int]
+
+
+class MarkdownLinkRuleResult(NamedTuple):
+    """
+    # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
+
+    The result of a MarkDownLineRule match
+
+    full-  Full text match
+    text- Link description Text
+    link- URL
+
+    """
+    full: str
+    text: str
+    url: str
+    relative:Optional[RelativeMarkdownURLRuleResult] = None
+
+
+# class MarkdownImageRuleResult(NamedTuple):
+#     """
+#     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
+
+#     The result of a MarkDownLineRule match
+
+#     full-  Full text match
+#     caption- The image caption portion of the link -> ![image caption](URL)
+#     url- URL to the image
+
+#     """
+#     full: str
+#     caption: str
+#     url: str
+#     relative:Optional[RelativeMarkdownURLRuleResult] = None
+
+
+# ----
 class MatchRule(ABC):
     """
     This is an abstract base class used to define a string matching
@@ -67,7 +123,7 @@ class MatchRule(ABC):
 
         self._build_regex()
 
-    def _get_match_result(self, line):
+    def _get_match_result(self, line:str):
         """
         This method will run the line through the regex_matcher function
         and return the results.
@@ -84,7 +140,7 @@ class MatchRule(ABC):
         # Return
 
         The return item depends on the concrete implementation of the
-        _fine_results method.
+        _find_results method.
 
         """
 
@@ -184,6 +240,7 @@ class MatchRule(ABC):
         pass
 
 
+
 class MarkdownLinkRule(MatchRule):
     """
     Examines the markdown line for valid markdown links. If the line
@@ -243,11 +300,11 @@ class MarkdownLinkRule(MatchRule):
         """ """
 
         result = [
-            {
-                "full": m.group(),
-                "text": m.group("text"),
-                "url": m.group("url"),
-            }
+            MarkdownLinkRuleResult(
+                full=m.group(),
+                text=m.group("text"),
+                url=m.group("url"),
+            )
             for m in self.regex.finditer(line)
         ]
 
@@ -262,19 +319,16 @@ class MarkdownLinkRule(MatchRule):
 
         return result is not None
 
-    def extract_data(self, line, **kwargs):
+    def extract_data(self, line:str, **kwargs) -> Optional[list[MarkdownLinkRuleResult]]:
         """
         Attempts to extract the information from the line if there is a
         match. If there is no match, None is returned.
 
         # Return
 
-        A match will return a list of dictionaries that contain
-        the 'text' of the link and the 'link' URL.
-
-        [{'full': 'full match',
-          'text':'Link description Text',
-          'link':'URL'}]
+        A match will return a list of MarkdownLinkRuleResult objects
+        that contain the 'text' of the link and the 'link' URL and the
+        `full` markdown match.
 
         If no match is found, None is returned
         """
@@ -379,6 +433,7 @@ class AbsoluteURLRule(MatchRule):
             return None
 
 
+
 class RelativeMarkdownURLRule(MatchRule):
     """
 
@@ -456,15 +511,24 @@ class RelativeMarkdownURLRule(MatchRule):
         result = self.regex.match(line)
 
         if result:
-            return {
-                "full": result.group(),
-                "md_span": result.span(
-                    "md"
-                ),  # tuple(start, end) <- start and end position of the match
-                "md": result.group("md"),
-                "section_span": result.span("section"),
-                "section": result.group("section"),
-            }
+            return RelativeMarkdownURLRuleResult(
+                full=result.group(),
+                md=result.group("md"),
+                section=result.group("section"),
+                # md_span=result.span("md"),
+                # section_span=result.span("section"),
+            )
+
+
+            # return {
+            #     "full": result.group(),
+            #     "md_span": result.span(
+            #         "md"
+            #     ),  # tuple(start, end) <- start and end position of the match
+            #     "md": result.group("md"),
+            #     "section_span": result.span("section"),
+            #     "section": result.group("section"),
+            # }
 
         else:
             return None
@@ -556,11 +620,11 @@ class MarkdownImageRule(MatchRule):
         """ """
 
         result = [
-            {
-                "full": m.group(),
-                "caption": m.group("caption"),
-                "url": m.group("url"),
-            }
+            MarkdownLinkRuleResult(
+                full=m.group(),
+                text=m.group("caption"),
+                url=m.group("url"),
+            )
             for m in self.regex.finditer(line)
         ]
 
