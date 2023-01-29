@@ -24,6 +24,7 @@ system for issues. The `repair` command can fix some of the issues.
 # from functools import partial
 
 from pathlib import Path
+from itertools import chain
 
 # ------------
 # 3rd Party - From pip
@@ -35,6 +36,8 @@ console = Console()
 
 # ------------
 # Custom Modules
+
+from .markdown import MarkdownDocument
 
 
 # from ..documentos.document_validation import (
@@ -117,15 +120,30 @@ def validate(*args, **kwargs):
 
     for filename in filepath.rglob("*"):
 
-        console.print(f'[cyan]{filename}[/cyan]')
+        # console.print(f'[cyan]{filename}[/cyan]')
         asset_files.setdefault(filename.name, [] ).append(filename)
 
         if filename.suffix == '.md':
 
-            console.print(f'[green]MARKDOWN: {filename}[/green]')
-            markdown_files.add(filename)
+            doc = MarkdownDocument(filename)
+            markdown_files.add(doc)
 
-            # Go through the markdown file and find the links and image links
+            console.print(f'[green]MARKDOWN: {doc.filename}[/green] -> Lines: {len(doc.contents)}')
+
+            for l in chain(doc.relative_links(), doc.image_links()):
+                line_number, value = l
+                console.print(f'\tLine: {line_number} -> {value}')
+
+
+            console.print()
+
+            # console.print(f'\tLinks (Abs + Rel): {len(doc.all_links())}')
+            # console.print(f'\tAbsolute: {len(doc.absolute_links())}')
+            # console.print(f'\tRelative: {len(doc.relative_links())}')
+            # console.print(f'\tImage:    {len(doc.image_links())}')
+
+
+
 
 
     # Convert the dict counts to strings and find the length so we can
