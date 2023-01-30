@@ -25,6 +25,53 @@ import re
 from abc import ABC, abstractmethod, abstractproperty
 from typing import Optional, NamedTuple
 
+# ------------
+
+# 2023-01-30
+# - Rebuild the rules
+# - create an ABC and force the overload of the __call__ to return a boolean if
+
+# def __call__()
+
+
+# this rule prototype matches sub-strings within a string. It doesn't
+# hold rules that match an entire line
+
+class MatchRule(ABC):
+
+     def __init__(self, **kwargs):
+
+        self._result = None
+        self._regex = None
+
+        self._kwargs = kwargs
+
+        self._build_regex()
+
+    # the __call__ is used to check and see if the text has a match - it returns a bool
+    # the result holds the result of the matches...
+
+    @property
+    def result(self) -> Optional[list[MarkdownLinkRuleResult]]:
+        self._result
+
+
+    @abstractmethod
+    def _build_regex(self):
+        """
+        A method to construct the regular expression used by the
+        classifier rule.
+        """
+        pass
+
+    @abstractmethod
+    def __call__(self, text:str=None) -> bool:
+        pass
+
+# NOTE: Change the name of the result objects - make them shorter
+
+# NOTE: Replace all of the match rules based on this rule
+
 
 # ------------
 
