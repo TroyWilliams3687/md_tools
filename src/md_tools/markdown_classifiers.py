@@ -29,15 +29,50 @@ from typing import Optional, NamedTuple
 
 # 2023-01-30
 # - Rebuild the rules
-# - create an ABC and force the overload of the __call__ to return a boolean if
 
-# def __call__()
+class RelativeMarkdownURLRuleResult(NamedTuple):
+    """
+    # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
+
+    The result of a RelativeMarkdownURLRule match
+
+    full-  Full text match
+    md - The string representing the link.
+    section - The string representing the section anchor, if any.
+    md_span -  A tuple(start, end) Containing the starting and ending position of the markdown link match in the string
+    section_span - A tuple(start, end) Containing the starting and ending position of the section anchor match in the string
+
+    """
+    full:str
+    md:str
+    section:str
+    # md_span:tuple[int,int]
+    # section_span:tuple[int,int]
 
 
-# this rule prototype matches sub-strings within a string. It doesn't
-# hold rules that match an entire line
+class TokenRuleResult(NamedTuple):
+    """
+    # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
-class MatchRule(ABC):
+    The result of a MarkDownLineRule match
+
+    full-  Full text match
+    text- Link description Text
+    link- URL
+
+    """
+    full: str
+    text: str
+    url: str
+    relative:Optional[RelativeMarkdownURLRuleResult] = None
+
+
+class TokenRule(ABC):
+    """
+    Match tokens within a text string using regex and return the
+    results, if any.
+    """
+
 
      def __init__(self, **kwargs):
 
@@ -48,12 +83,14 @@ class MatchRule(ABC):
 
         self._build_regex()
 
-    # the __call__ is used to check and see if the text has a match - it returns a bool
-    # the result holds the result of the matches...
 
     @property
-    def result(self) -> Optional[list[MarkdownLinkRuleResult]]:
-        self._result
+    def result(self) -> Optional[list[TokenRuleResult]]:
+        """
+        The list of TokenRuleResult objects that contain the results of
+        the regex match.
+        """
+        return self._result
 
 
     @abstractmethod
@@ -71,6 +108,8 @@ class MatchRule(ABC):
 # NOTE: Change the name of the result objects - make them shorter
 
 # NOTE: Replace all of the match rules based on this rule
+
+# NOTE: Can have a sister ABC object called LineRule
 
 
 # ------------
