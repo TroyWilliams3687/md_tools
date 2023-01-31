@@ -30,68 +30,56 @@ from typing import Optional, NamedTuple
 # 2023-01-30
 # - Rebuild the rules
 
-class RelativeMarkdownURLRuleResult(NamedTuple):
+
+
+
+class RelativeLinkRuleResult(NamedTuple):
     """
     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
-    The result of a RelativeMarkdownURLRule match
+    Splits the URL up into the Path and the Section
 
-    full-  Full text match
-    md - The string representing the link.
-    section - The string representing the section anchor, if any.
-    md_span -  A tuple(start, end) Containing the starting and ending position of the markdown link match in the string
-    section_span - A tuple(start, end) Containing the starting and ending position of the section anchor match in the string
+    [test link](../path/to/file.md#section1)
 
+
+    path - The relative path - `../path/to/file.md`
+    section - The section associated with the path - `section1`
     """
-    full:str
-    md:str
+    path:str
     section:str
-    # md_span:tuple[int,int]
-    # section_span:tuple[int,int]
 
 
-class TokenRuleResult(NamedTuple):
+class MarkdownLinkRuleResult(NamedTuple):
     """
     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
-    The result of a MarkDownLineRule match
+    [test link](https://www.bluebill.net/test1)
 
-    full-  Full text match
-    text- Link description Text
-    link- URL
+    https://www.ibm.com/docs/en/cics-ts/5.1?topic=concepts-components-url
+    https://host:port/path#section
+
+    full - Full text match - `[test link](https://www.bluebill.net/test1)`
+    text - Link description Text - `test link`
+    link - URL - `https://www.bluebill.net/test1`
+
+    relative - a reference to the relative link rule result.
 
     """
     full: str
     text: str
     url: str
-    relative:Optional[RelativeMarkdownURLRuleResult] = None
 
 
-class TokenRule(ABC):
+class MarkdownRule(ABC):
     """
     Match tokens within a text string using regex and return the
     results, if any.
     """
 
-
      def __init__(self, **kwargs):
 
-        self._result = None
-        self._regex = None
-
-        self._kwargs = kwargs
-
         self._build_regex()
-
-
-    @property
-    def result(self) -> Optional[list[TokenRuleResult]]:
-        """
-        The list of TokenRuleResult objects that contain the results of
-        the regex match.
-        """
-        return self._result
-
+        self._result = None
 
     @abstractmethod
     def _build_regex(self):
@@ -101,18 +89,187 @@ class TokenRule(ABC):
         """
         pass
 
-    @abstractmethod
+    @property
+    def result(self) -> Optional[list[MarkdownLinkRuleResult]]:
+        """
+        The list of links that matched the last selection.
+        """
+        return self._result
+
+    def _search_text(self, text:str=None) -> list[MarkdownLinkRuleResult]:
+        """
+        """
+
+        return [
+            MarkdownLinkRuleResult(
+                full=m.group(),
+                text=m.group("text"),
+                url=m.group("url"),
+            )
+            for m in self.regex.finditer(text)
+        ]
+
     def __call__(self, text:str=None) -> bool:
-        pass
+        """
+        Does the text contain Markdown links?
+        """
+        result = self._search_text(text)
 
-# NOTE: Change the name of the result objects - make them shorter
+        self._result = result if len(result) > 0 else None
 
-# NOTE: Replace all of the match rules based on this rule
+        return self._result is not None
 
-# NOTE: Can have a sister ABC object called LineRule
+
+
+class MarkdownLinkRule(MarkdownRule):
+    """
+    Determine if the text contains Markdown formatted hyperlinks.
+
+    This method will implement __call__ so it can be work like a
+    function call. The function call will produce a bool indicating at
+    least one link was found within the text.
+
+    The caller can then access the result attribute for a list of
+    MarkdownLinkRuleResult objects.
+    """
+
+    def _build_regex(self):
+        """
+        A method to construct the regular expression used by the
+        classifier rule.
+        """
+
+        self._regex = re.compile(
+            r"(?<!!)(?:\[(?P<text>.*?)\]\((?P<url>.*?)\))",
+        )
+
+
+class MarkdownImageLinkRule(MarkdownRule):
+    """
+    Determine if the text contains Markdown formatted image links.
+
+    This method will implement __call__ so it can be work like a
+    function call. The function call will produce a bool indicating at
+    least one Image link was found within the text.
+
+    The caller can then access the result attribute for a list of
+    MarkdownLinkRuleResult objects.
+    """
+
+    def _build_regex(self):
+        """
+        A method to construct the regular expression used by the
+        classifier rule.
+        """
+
+        self._regex = re.compile(
+            r"(?:[!]\[(?P<text>.*?)\])\((?P<url>.*?)\)",
+        )
+
+
+# We need rules for Absolute URL and Relative URL - I think these should only be invoked if an image link or hyper link is found
+
+
+
+
+
+
+# Ideas:
+# class RelativeMarkdownURLRuleResult(NamedTuple):
+#     """
+#     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
+
+#     The result of a RelativeMarkdownURLRule match
+
+#     full-  Full text match
+#     md - The string representing the link.
+#     section - The string representing the section anchor, if any.
+#     md_span -  A tuple(start, end) Containing the starting and ending position of the markdown link match in the string
+#     section_span - A tuple(start, end) Containing the starting and ending position of the section anchor match in the string
+
+#     """
+#     full:str
+#     md:str
+#     section:str
+#     # md_span:tuple[int,int]
+#     # section_span:tuple[int,int]
+
+
+# class MarkdownTokenRuleResult(NamedTuple):
+#     """
+#     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
+
+#     The result of a MarkDownLineRule match
+
+#     full-  Full text match
+#     text- Link description Text
+#     link- URL
+
+#     """
+#     full: str
+#     text: str
+#     url: str
+#     relative:Optional[RelativeMarkdownURLRuleResult] = None
+
+
+# class MarkdownTokenRule(ABC):
+#     """
+#     Match tokens within a text string using regex and return the
+#     results, if any.
+#     """
+
+
+#      def __init__(self, **kwargs):
+
+#         self._result = None
+#         self._regex = None
+
+#         self._kwargs = kwargs
+
+#         self._build_regex()
+
+
+#     @property
+#     def result(self) -> Optional[list[MarkdownTokenRuleResult]]:
+#         """
+#         The list of MarkdownTokenRuleResult objects that contain the results of
+#         the regex match.
+#         """
+#         return self._result
+
+
+#     @abstractmethod
+#     def _build_regex(self):
+#         """
+#         A method to construct the regular expression used by the
+#         classifier rule.
+#         """
+#         pass
+
+#     @abstractmethod
+#     def __call__(self, text:str=None) -> bool:
+#         pass
+
+# # NOTE: Change the name of the result objects - make them shorter
+
+# # NOTE: Replace all of the match rules based on this rule
+
+# # NOTE: Can have a sister ABC object called LineRule
+
+
+
+
+
+
+
+
 
 
 # ------------
+# ------------
+# ------------
+
+# The stuff below works.
 
 class RelativeMarkdownURLRuleResult(NamedTuple):
     """
