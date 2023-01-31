@@ -23,7 +23,7 @@ a string representing a line in a markdown file.
 import re
 
 from abc import ABC, abstractmethod, abstractproperty
-from typing import Optional, NamedTuple
+from typing import Optional, NamedTuple, Generator
 
 # ------------
 
@@ -33,20 +33,6 @@ from typing import Optional, NamedTuple
 
 
 
-class RelativeLinkRuleResult(NamedTuple):
-    """
-    # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
-
-    Splits the URL up into the Path and the Section
-
-    [test link](../path/to/file.md#section1)
-
-
-    path - The relative path - `../path/to/file.md`
-    section - The section associated with the path - `section1`
-    """
-    path:str
-    section:str
 
 
 class MarkdownLinkRuleResult(NamedTuple):
@@ -70,10 +56,10 @@ class MarkdownLinkRuleResult(NamedTuple):
     url: str
 
 
-class MarkdownRule(ABC):
+class MarkdownLinkTokenRule(ABC):
     """
     Match tokens within a text string using regex and return the
-    results, if any.
+    results, if any, as a MarkdownLinkRuleResult object.
     """
 
      def __init__(self, **kwargs):
@@ -121,7 +107,7 @@ class MarkdownRule(ABC):
 
 
 
-class MarkdownLinkRule(MarkdownRule):
+class MarkdownTokenLinkRule(MarkdownLinkTokenRule):
     """
     Determine if the text contains Markdown formatted hyperlinks.
 
@@ -144,7 +130,7 @@ class MarkdownLinkRule(MarkdownRule):
         )
 
 
-class MarkdownImageLinkRule(MarkdownRule):
+class MarkdownImageTokenLinkRule(MarkdownLinkTokenRule):
     """
     Determine if the text contains Markdown formatted image links.
 
@@ -169,92 +155,205 @@ class MarkdownImageLinkRule(MarkdownRule):
 
 # We need rules for Absolute URL and Relative URL - I think these should only be invoked if an image link or hyper link is found
 
+# def url_path_to_dict(path):
+#     pattern = (r'^'
+#                r'((?P<schema>.+?)://)?'
+#                r'((?P<user>.+?)(:(?P<password>.*?))?@)?'
+#                r'(?P<host>.*?)'
+#                r'(:(?P<port>\d+?))?'
+#                r'(?P<path>/.*?)?'
+#                r'(?P<query>[?].*?)?'
+#                r'$'
+#                )
+#     regex = re.compile(pattern)
+#     m = regex.match(path)
+#     d = m.groupdict() if m is not None else None
+
+#     return d
+
+
+class URLRule(ABC):
+    """
+
+    """
+
+    def __init__(self, **kwargs):
+
+        self._build_regex()
+        self._result = None
+
+    @abstractmethod
+    def _build_regex(self):
+        """
+        A method to construct the regular expression used by the
+        classifier rule.
+        """
+        pass
+
+    @property
+    def result(self) -> Optional[dict]:
+        """
+        The list of links that matched the last selection.
+        """
+        return self._result
+
+    def __call__(self, text:str=None) -> bool:
+        """
+        Does the text contain Markdown links?
+        """
+        m = self._regex.match(text)
+
+        self._result = m.groupdict() if m is not None else None
+
+        return self._result is not None
+
+
+class AbsoluteURLRule():
+    """
+
+    This rule will match an absolute URL of the form:
+
+    - https://github.com/tomduck/pandoc-fignos   <- Match
+    - http://github.com/tomduck/pandoc-fignos    <- Match
+    - ftp://github.com/tomduck/pandoc-fignos     <- Match
+    - http://github.com/ tomduck/ pandoc-fignos  <- No Match
+    - ftp:// github.com/ tomduck/ pandoc-fignos  <- No Match
+    - ftps://github.com/tomduck/pandoc-fignos    <- No Match
+    - www.google.ca                              <- No Match
+    - google.com                                 <- No Match
+
+    # Assumptions
+
+    - It looks for the protocol://
+    - Assumes the whole string is the URL, from start to finish
+    - Not designed to search in text for URL
+
+    Not a match if:
+
+    - Contains spaces
+    - Missing protocol
+    - Unrecognized protocol
+
+    # Note
+
+    This rule is designed to match the entire string. For this rule to
+    work effectively the string should have already been classified by
+    the MarkDownLinkRule
+
+    - https://regex101.com/r/u1tn0I/8
+
+    """
+
+    def _build_regex(self):
+
+        self._regex = re.compile(
+            r"^(?P<url>(?:https?|ftp)://\S*)$",
+        )
+
+
+
+class RelativeURLRule():
+    """
+    This rule will match an relative URL of the
+    form: "./ch0_1_images.md#fig:ch0_1_images-1"
+
+    - https://github.com/tomduck/pandoc-fignos       <- not a Match
+    - http://github.com/tomduck/pandoc-fignos        <- not a Match
+    - ftp://github.com/tomduck/pandoc-fignos         <- not a Match
+    - ftp://github.com/ tomduck/ pandoc-fignos       <- not a Match
+    - ftp:// github.com/ tomduck/ pandoc-fignos      <- not a Match
+    - ftps://github.com/tomduck/pandoc-fignos        <- not a Match
+    - www.google.ca                                  <- not a Match
+    - google.com                                     <- not a Match
+    - ./ch0_1_images.md#fig:ch0_1_images-1           <- Match
+    - ./ch0_1_images.md#fig:ch0_1_images-2           <- Match
+    - ./ch0_2_equations.md#sec:ch0_2_equations-1     <- Match
+    - ./ch0_2_equations.md#eq:ch0_2_equations-1      <- Match
+    - ./ch0_2_equations.md#eq:ch0_2_equations-2      <- Match
+    - ./ch0_2_equations.md                           <- Match
+    - ./hello world.md                               <- Match
+    - #eq:ch0_2_equations-2                          <- Match
+    - #eq:ch0_2_equations-2                          <- Match
+
+    - ../assets/circle_arc.png                       <- Match
+    - ../../assets/HyperbolaAnatomyLeft.png          <- Match
+
+    # Assumptions
+
+    - It ignores the protocol://
+    - It has to contain a reference to a .md file or section '#'
+    - The whole string is the URL
+    - Empty strings will not be checked
+
+    Not a match if:
+
+    - Contains protocol://
+    - Empty
+    - missing .md, .png, jpg, jpeg, gif
+    - missing '#'
+
+    # Note
+
+    This rule is designed to match the entire string. For this rule to
+    work effectively the string should have already been classified by
+    the MarkDownLinkRule
+
+    - https://regex101.com/r/u1tn0I/10
+
+    """
+
+    def _build_regex(self):
+
+        self._regex = re.compile(
+            r"^(?!.*:\/\/)(?P<file>[^#]*?)(?P<section>#.*)?$",
+        )
+
+
+class MarkdownRelativeLinkResult(NamedTuple):
+    """
+
+    """
+    line: str
+    links: list[str]
+
+
+
+def find_relative_markdown_links(text:list[str]=None) -> Generator[MarkdownRelativeLinkResult, None, None]:
+    """
+    Search the text for lines containing markdown links that are
+    relative returning a tuple containing the
+
+    [link text](./file.txt)
+    [link text](../dir1/file.txt)
+
+
+    usage:
+
+    for links in find_relative_markdown_links(text):
+        print(f'Line: `{links.line}` contains: {links.links}')
+
+    """
+
+    is_markdown_link = MarkdownTokenLinkRule()
+    is_relative_url = RelativeURLRule()
+
+    for line in text:
+
+        if is_markdown_link(line):
+
+            relative_urls = [link.url for link in ml.result if is_relative_url(link.url)]
+
+            yield MarkdownRelativeLinkResult(line, relative_urls)
 
 
 
 
 
-# Ideas:
-# class RelativeMarkdownURLRuleResult(NamedTuple):
-#     """
-#     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
-
-#     The result of a RelativeMarkdownURLRule match
-
-#     full-  Full text match
-#     md - The string representing the link.
-#     section - The string representing the section anchor, if any.
-#     md_span -  A tuple(start, end) Containing the starting and ending position of the markdown link match in the string
-#     section_span - A tuple(start, end) Containing the starting and ending position of the section anchor match in the string
-
-#     """
-#     full:str
-#     md:str
-#     section:str
-#     # md_span:tuple[int,int]
-#     # section_span:tuple[int,int]
 
 
-# class MarkdownTokenRuleResult(NamedTuple):
-#     """
-#     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
-
-#     The result of a MarkDownLineRule match
-
-#     full-  Full text match
-#     text- Link description Text
-#     link- URL
-
-#     """
-#     full: str
-#     text: str
-#     url: str
-#     relative:Optional[RelativeMarkdownURLRuleResult] = None
 
 
-# class MarkdownTokenRule(ABC):
-#     """
-#     Match tokens within a text string using regex and return the
-#     results, if any.
-#     """
 
-
-#      def __init__(self, **kwargs):
-
-#         self._result = None
-#         self._regex = None
-
-#         self._kwargs = kwargs
-
-#         self._build_regex()
-
-
-#     @property
-#     def result(self) -> Optional[list[MarkdownTokenRuleResult]]:
-#         """
-#         The list of MarkdownTokenRuleResult objects that contain the results of
-#         the regex match.
-#         """
-#         return self._result
-
-
-#     @abstractmethod
-#     def _build_regex(self):
-#         """
-#         A method to construct the regular expression used by the
-#         classifier rule.
-#         """
-#         pass
-
-#     @abstractmethod
-#     def __call__(self, text:str=None) -> bool:
-#         pass
-
-# # NOTE: Change the name of the result objects - make them shorter
-
-# # NOTE: Replace all of the match rules based on this rule
-
-# # NOTE: Can have a sister ABC object called LineRule
 
 
 
