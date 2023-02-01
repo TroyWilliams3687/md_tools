@@ -349,6 +349,10 @@ class MarkdownRelativeLinkResult(NamedTuple):
 
 
 
+# NOTE: This shouldn't be here. This should be about the rules to find
+# various tokens and lines within a markdown file, not the following.
+# That should be in the markdown file...
+
 def find_relative_markdown_links(text:list[str]=None) -> Generator[MarkdownRelativeLinkResult, None, None]:
     """
     Search the text for lines containing markdown links that are
