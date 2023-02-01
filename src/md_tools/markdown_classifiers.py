@@ -172,84 +172,91 @@ class MarkdownImageTokenLinkRule(MarkdownLinkTokenRule):
 #     return d
 
 
-class URLRule(ABC):
+# class URLRule(ABC):
+#     """
+
+#     """
+
+#     def __init__(self, **kwargs):
+
+#         self._build_regex()
+#         self._result = None
+
+#     @abstractmethod
+#     def _build_regex(self):
+#         """
+#         A method to construct the regular expression used by the
+#         classifier rule.
+#         """
+#         pass
+
+#     @property
+#     def result(self) -> Optional[dict]:
+#         """
+#         The list of links that matched the last selection.
+#         """
+#         return self._result
+
+#     def __call__(self, text:str=None) -> bool:
+#         """
+#         Does the text contain Markdown links?
+#         """
+#         m = self._regex.match(text)
+
+#         self._result = m.groupdict() if m is not None else None
+
+#         return self._result is not None
+
+
+# class AbsoluteURLRule():
+#     """
+
+#     This rule will match an absolute URL of the form:
+
+#     - https://github.com/tomduck/pandoc-fignos   <- Match
+#     - http://github.com/tomduck/pandoc-fignos    <- Match
+#     - ftp://github.com/tomduck/pandoc-fignos     <- Match
+#     - http://github.com/ tomduck/ pandoc-fignos  <- No Match
+#     - ftp:// github.com/ tomduck/ pandoc-fignos  <- No Match
+#     - ftps://github.com/tomduck/pandoc-fignos    <- No Match
+#     - www.google.ca                              <- No Match
+#     - google.com                                 <- No Match
+
+#     # Assumptions
+
+#     - It looks for the protocol://
+#     - Assumes the whole string is the URL, from start to finish
+#     - Not designed to search in text for URL
+
+#     Not a match if:
+
+#     - Contains spaces
+#     - Missing protocol
+#     - Unrecognized protocol
+
+#     # Note
+
+#     This rule is designed to match the entire string. For this rule to
+#     work effectively the string should have already been classified by
+#     the MarkDownLinkRule
+
+#     - https://regex101.com/r/u1tn0I/8
+
+#     """
+
+#     def _build_regex(self):
+
+#         self._regex = re.compile(
+#             r"^(?P<url>(?:https?|ftp)://\S*)$",
+#         )
+
+
+class RelativeURLRuleResult(NamedTuple):
     """
 
     """
-
-    def __init__(self, **kwargs):
-
-        self._build_regex()
-        self._result = None
-
-    @abstractmethod
-    def _build_regex(self):
-        """
-        A method to construct the regular expression used by the
-        classifier rule.
-        """
-        pass
-
-    @property
-    def result(self) -> Optional[dict]:
-        """
-        The list of links that matched the last selection.
-        """
-        return self._result
-
-    def __call__(self, text:str=None) -> bool:
-        """
-        Does the text contain Markdown links?
-        """
-        m = self._regex.match(text)
-
-        self._result = m.groupdict() if m is not None else None
-
-        return self._result is not None
-
-
-class AbsoluteURLRule():
-    """
-
-    This rule will match an absolute URL of the form:
-
-    - https://github.com/tomduck/pandoc-fignos   <- Match
-    - http://github.com/tomduck/pandoc-fignos    <- Match
-    - ftp://github.com/tomduck/pandoc-fignos     <- Match
-    - http://github.com/ tomduck/ pandoc-fignos  <- No Match
-    - ftp:// github.com/ tomduck/ pandoc-fignos  <- No Match
-    - ftps://github.com/tomduck/pandoc-fignos    <- No Match
-    - www.google.ca                              <- No Match
-    - google.com                                 <- No Match
-
-    # Assumptions
-
-    - It looks for the protocol://
-    - Assumes the whole string is the URL, from start to finish
-    - Not designed to search in text for URL
-
-    Not a match if:
-
-    - Contains spaces
-    - Missing protocol
-    - Unrecognized protocol
-
-    # Note
-
-    This rule is designed to match the entire string. For this rule to
-    work effectively the string should have already been classified by
-    the MarkDownLinkRule
-
-    - https://regex101.com/r/u1tn0I/8
-
-    """
-
-    def _build_regex(self):
-
-        self._regex = re.compile(
-            r"^(?P<url>(?:https?|ftp)://\S*)$",
-        )
-
+    file: str
+    section: Optional[str]
 
 
 class RelativeURLRule():
@@ -302,6 +309,11 @@ class RelativeURLRule():
 
     """
 
+        def __init__(self, **kwargs):
+
+        self._build_regex()
+        self._result = None
+
     def _build_regex(self):
 
         self._regex = re.compile(
@@ -309,12 +321,31 @@ class RelativeURLRule():
         )
 
 
+    @property
+    def result(self) -> Optional[RelativeURLRuleResult]:
+        """
+        The list of links that matched the last selection.
+        """
+        return self._result
+
+    def __call__(self, text:str=None) -> bool:
+        """
+        Does the text contain Markdown links?
+        """
+        m = self._regex.match(text)
+
+        self._result = RelativeURLRuleResult(**m.groupdict()) if m is not None else None
+
+        return self._result is not None
+
+
+
 class MarkdownRelativeLinkResult(NamedTuple):
     """
 
     """
     line: str
-    links: list[str]
+    links: list[RelativeURLRuleResult]
 
 
 
@@ -341,7 +372,14 @@ def find_relative_markdown_links(text:list[str]=None) -> Generator[MarkdownRelat
 
         if is_markdown_link(line):
 
-            relative_urls = [link.url for link in ml.result if is_relative_url(link.url)]
+            relative_urls = []
+
+            for link in ml.result:
+
+                if is_relative_url(link.url):
+                    relative_urls.append(is_relative_url.result)
+
+            # relative_urls = [link.url for link in ml.result if is_relative_url(link.url)]
 
             yield MarkdownRelativeLinkResult(line, relative_urls)
 
