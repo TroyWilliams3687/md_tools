@@ -20,8 +20,8 @@ from md_tools.markdown_classifiers import (
     MarkdownLinkRuleResult,
     MarkdownTokenLinkRule,
     MarkdownImageTokenLinkRule,
-    # HTMLImageRuleResult,
-    # HTMLImageRule,
+    HTMLImageRuleResult,
+    HTMLImageRule,
     # RelativeURLRuleResult,
     # RelativeURLRule,
     # AbsoluteURLRuleResult,
@@ -299,6 +299,114 @@ def test_markdownimagetokenlinkrule_results(data):
 
     rule(value)
     assert rule.result == results
+
+
+
+# --------------
+# Test HTMLImageRule
+
+data = []
+
+data.append(
+    (
+        '<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
+        True,
+    )
+)
+data.append(
+    (
+        '<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
+        True,
+    )
+)
+data.append(
+    (
+        '<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/> ',
+        True,
+    )
+)
+data.append(('<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>', True))
+
+data.append(('<img src="hello world"/> <img /> <img src="hello world"/>', True))
+
+data.append(('<img alt="Similar Triangles" style="width: 600px;"/>', False))
+data.append(("<img/>", False))
+
+
+@pytest.mark.parametrize("data", data)
+def test_html_image_rule_match(data):
+
+    question, answer = data
+    rule = HTMLImageRule()
+
+    assert rule(question) == answer
+
+
+data = []
+
+data.append(
+    (
+        '<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
+        [
+            HTMLImageRuleResult(
+                full='<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
+                src='../../assets/similar_triangles.png',
+            ),
+        ],
+    )
+)
+data.append(
+    (
+        '<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
+        [
+            HTMLImageRuleResult(
+                full='<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
+                src='../../assets/break_out_angle.png',
+            ),
+        ],
+    )
+)
+data.append(
+    (
+        '<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>',
+        [
+            HTMLImageRuleResult(
+                full='<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>',
+                src='azimuth_dump.png',
+            ),
+        ],
+    )
+)
+data.append(
+    (
+        '<img src="hello world"/> <img /> <img src="hello world2"/>',
+        [
+            HTMLImageRuleResult(
+                full='<img src="hello world"/>',
+                src='hello world',
+            ),
+            HTMLImageRuleResult(
+                full='<img src="hello world2"/>',
+                src='hello world2',
+            ),
+        ],
+    )
+)
+
+data.append(('<img alt="Similar Triangles" style="width: 600px;"/>', None))
+data.append(("<img/>", None))
+
+
+@pytest.mark.parametrize("data", data)
+def test_html_image_rule_extraction(data):
+
+    question, answer = data
+    rule = HTMLImageRule()
+
+    rule(question)
+
+    assert rule.result == answer
+
 
 
 
@@ -809,105 +917,7 @@ def test_markdownimagetokenlinkrule_results(data):
 #     assert rule.is_full_match == True
 
 
-# # --------------
-# # Test HTMLImageRule
 
-
-# data = []
-
-# data.append(
-#     (
-#         '<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
-#         True,
-#     )
-# )
-# data.append(
-#     (
-#         '<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
-#         True,
-#     )
-# )
-# data.append(
-#     (
-#         '<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/> ',
-#         True,
-#     )
-# )
-# data.append(('<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>', True))
-
-# data.append(('<img src="hello world"/> <img /> <img src="hello world"/>', True))
-
-# data.append(('<img alt="Similar Triangles" style="width: 600px;"/>', False))
-# data.append(("<img/>", False))
-
-
-# @pytest.mark.parametrize("data", data)
-# def test_html_image_rule_match(data):
-
-#     question, answer = data
-#     rule = HTMLImageRule()
-
-#     assert rule.match(question) == answer
-
-
-# data = []
-
-# data.append(
-#     (
-#         '<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
-#         [
-#             {
-#                 "full": '<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
-#                 "src": "../../assets/similar_triangles.png",
-#             }
-#         ],
-#     )
-# )
-# data.append(
-#     (
-#         '<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
-#         [
-#             {
-#                 "full": '<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
-#                 "src": "../../assets/break_out_angle.png",
-#             }
-#         ],
-#     )
-# )
-# data.append(
-#     (
-#         '<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>',
-#         [
-#             {
-#                 "full": '<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>',
-#                 "src": "azimuth_dump.png",
-#             }
-#         ],
-#     )
-# )
-# data.append(
-#     (
-#         '<img src="hello world"/> <img /> <img src="hello world2"/>',
-#         [
-#             {"full": '<img src="hello world"/>', "src": "hello world"},
-#             {"full": '<img src="hello world2"/>', "src": "hello world2"},
-#         ],
-#     )
-# )
-
-# data.append(('<img alt="Similar Triangles" style="width: 600px;"/>', None))
-# data.append(("<img/>", None))
-
-
-# @pytest.mark.parametrize("data", data)
-# def test_html_image_rule_extraction(data):
-
-#     question, answer = data
-#     rule = HTMLImageRule()
-
-#     output = rule.extract_data(question)
-
-#     assert output == answer
 
 
 # # ----------------
