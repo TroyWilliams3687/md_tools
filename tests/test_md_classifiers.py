@@ -19,7 +19,7 @@ import pytest
 from md_tools.markdown_classifiers import (
     MarkdownLinkRuleResult,
     MarkdownTokenLinkRule,
-    # MarkdownImageTokenLinkRule,
+    MarkdownImageTokenLinkRule,
     # HTMLImageRuleResult,
     # HTMLImageRule,
     # RelativeURLRuleResult,
@@ -141,6 +141,168 @@ def test_markdowntokenlinkrule_result(data):
 
     rule(value)
     assert rule.result == results
+
+
+# --------------
+# Test MarkdownImageRule
+
+
+data = []
+
+data.append(
+    (
+        "- [pandoc-fignos](https://github.com/tomduck/pandoc-fignos): Numbers figures and figure references.",
+        False,
+    )
+)
+data.append(
+    (
+        "The images section will walk you through how to add and reference images so that the pandoc system can properly number them. For example, this [figure](./ch0_1_images.md#fig:ch0_1_images-1) illustrates a VOD curve for a packaged watergel explosive and this [figure](./ch0_1_images.md#fig:ch0_1_images-2) depicts a circular arc.",
+        False,
+    )
+)
+data.append(("## [Equations](./ch0_2_equations.md#sec:ch0_2_equations-1)", False))
+data.append(
+    (
+        "The equations section will discuss how to use equations and reference them properly. See the [internal energy equation](./ch0_2_equations.md#eq:ch0_2_equations-1) or the [detonation pressure](./ch0_2_equations.md#eq:ch0_2_equations-2)",
+        False,
+    )
+)
+data.append(("This string does not contain any links", False))
+
+
+data.append(("![Caption.](image.png){#fig:id}", True))
+data.append(('![Caption.](image.png){#fig:id tag="B.1"}', True))
+data.append(
+    (
+        "![This is a sample image representing the VOD curve of a packaged Watergel explosive.](../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png){#fig:ch0_1_images-1 width=100%}",
+        True,
+    )
+)
+data.append(
+    ("![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)", True)
+)
+data.append(
+    (
+        "![](../../assets/XwMrG0o__iLF5nStoSPUuJ81ffxafRBWAVnEcGo10Yo=.png) and another image: ![test](image.png)",
+        True,
+    )
+)
+
+
+@pytest.mark.parametrize("data", data)
+def test_markdownimagetokenlinkrule_match(data):
+
+    value, result = data
+    rule = MarkdownImageTokenLinkRule()
+
+    assert rule(value) == result
+
+
+data = []
+data.append(
+    (
+        "- [pandoc-fignos](https://github.com/tomduck/pandoc-fignos): Numbers figures and figure references.",
+        None,
+    )
+)
+data.append(
+    (
+        "The images section will walk you through how to add and reference images so that the pandoc system can properly number them. For example, this [figure](./ch0_1_images.md#fig:ch0_1_images-1) illustrates a VOD curve for a packaged watergel explosive and this [figure](./ch0_1_images.md#fig:ch0_1_images-2) depicts a circular arc.",
+        None,
+    )
+)
+data.append(("## [Equations](./ch0_2_equations.md#sec:ch0_2_equations-1)", None))
+data.append(
+    (
+        "The equations section will discuss how to use equations and reference them properly. See the [internal energy equation](./ch0_2_equations.md#eq:ch0_2_equations-1) or the [detonation pressure](./ch0_2_equations.md#eq:ch0_2_equations-2)",
+        None,
+    )
+)
+data.append(("This string does not contain any links", None))
+
+data.append(
+    ( "![Caption.](image.png){#fig:id}", [
+        MarkdownLinkRuleResult(
+                full="![Caption.](image.png)",
+                text="Caption.",
+                url="image.png",
+            ),
+    ])
+)
+
+
+
+data.append(
+    (
+        '![Caption.](image.png){#fig:id tag="B.1"}',
+        [MarkdownLinkRuleResult(
+                full="![Caption.](image.png)",
+                text="Caption.",
+                url="image.png",
+            ),
+        ],
+    )
+)
+
+
+data.append(
+    (
+        "![This is a sample image representing the VOD curve of a packaged Watergel explosive.](../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png){#fig:ch0_1_images-1 width=100%}",
+        [
+            MarkdownLinkRuleResult(
+                full="![This is a sample image representing the VOD curve of a packaged Watergel explosive.](../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png)",
+                text="This is a sample image representing the VOD curve of a packaged Watergel explosive.",
+                url="../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png",
+            ),
+        ],
+    )
+)
+
+data.append(
+    (
+        "![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)",
+        [
+            MarkdownLinkRuleResult(
+                full="![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)",
+                text="",
+                url="../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png",
+            ),
+        ],
+    )
+)
+
+data.append(
+    (
+        "![This Image](image1.png) and another image ![That Image](image2.png)",
+        [
+            MarkdownLinkRuleResult(
+                full="![This Image](image1.png)",
+                text="This Image",
+                url="image1.png",
+            ),
+            MarkdownLinkRuleResult(
+                full="![That Image](image2.png)",
+                text="That Image",
+                url="image2.png",
+            ),
+        ],
+    )
+)
+
+
+@pytest.mark.parametrize("data", data)
+def test_markdownimagetokenlinkrule_results(data):
+
+    value, results = data
+    rule = MarkdownImageTokenLinkRule()
+
+    rule(value)
+    assert rule.result == results
+
+
+
+
 
 
 
@@ -378,147 +540,7 @@ def test_markdowntokenlinkrule_result(data):
 #     assert output == results
 
 
-# # --------------
-# # Test MarkdownImageRule
 
-
-# data = []
-
-# data.append(
-#     (
-#         "- [pandoc-fignos](https://github.com/tomduck/pandoc-fignos): Numbers figures and figure references.",
-#         False,
-#     )
-# )
-# data.append(
-#     (
-#         "The images section will walk you through how to add and reference images so that the pandoc system can properly number them. For example, this [figure](./ch0_1_images.md#fig:ch0_1_images-1) illustrates a VOD curve for a packaged watergel explosive and this [figure](./ch0_1_images.md#fig:ch0_1_images-2) depicts a circular arc.",
-#         False,
-#     )
-# )
-# data.append(("## [Equations](./ch0_2_equations.md#sec:ch0_2_equations-1)", False))
-# data.append(
-#     (
-#         "The equations section will discuss how to use equations and reference them properly. See the [internal energy equation](./ch0_2_equations.md#eq:ch0_2_equations-1) or the [detonation pressure](./ch0_2_equations.md#eq:ch0_2_equations-2)",
-#         False,
-#     )
-# )
-# data.append(("This string does not contain any links", False))
-
-
-# data.append(("![Caption.](image.png){#fig:id}", True))
-# data.append(('![Caption.](image.png){#fig:id tag="B.1"}', True))
-# data.append(
-#     (
-#         "![This is a sample image representing the VOD curve of a packaged Watergel explosive.](../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png){#fig:ch0_1_images-1 width=100%}",
-#         True,
-#     )
-# )
-# data.append(
-#     ("![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)", True)
-# )
-# data.append(
-#     (
-#         "![](../../assets/XwMrG0o__iLF5nStoSPUuJ81ffxafRBWAVnEcGo10Yo=.png) and another image: ![test](image.png)",
-#         True,
-#     )
-# )
-
-
-# @pytest.mark.parametrize("data", data)
-# def test_md_image_rule_match(data):
-
-#     value, result = data
-#     rule = MarkdownImageRule()
-
-#     assert rule.match(value) == result
-
-
-# data = []
-# data.append(
-#     (
-#         "- [pandoc-fignos](https://github.com/tomduck/pandoc-fignos): Numbers figures and figure references.",
-#         None,
-#     )
-# )
-# data.append(
-#     (
-#         "The images section will walk you through how to add and reference images so that the pandoc system can properly number them. For example, this [figure](./ch0_1_images.md#fig:ch0_1_images-1) illustrates a VOD curve for a packaged watergel explosive and this [figure](./ch0_1_images.md#fig:ch0_1_images-2) depicts a circular arc.",
-#         None,
-#     )
-# )
-# data.append(("## [Equations](./ch0_2_equations.md#sec:ch0_2_equations-1)", None))
-# data.append(
-#     (
-#         "The equations section will discuss how to use equations and reference them properly. See the [internal energy equation](./ch0_2_equations.md#eq:ch0_2_equations-1) or the [detonation pressure](./ch0_2_equations.md#eq:ch0_2_equations-2)",
-#         None,
-#     )
-# )
-# data.append(("This string does not contain any links", None))
-
-# data.append(
-#     ("![Caption.](image.png){#fig:id}", [{"caption": "Caption.", "url": "image.png"}])
-# )
-# data.append(
-#     (
-#         '![Caption.](image.png){#fig:id tag="B.1"}',
-#         [{"caption": "Caption.", "url": "image.png"}],
-#     )
-# )
-
-
-# data.append(
-#     (
-#         "![This is a sample image representing the VOD curve of a packaged Watergel explosive.](../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png){#fig:ch0_1_images-1 width=100%}",
-#         [
-#             {
-#                 "caption": "This is a sample image representing the VOD curve of a packaged Watergel explosive.",
-#                 "url": "../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png",
-#             }
-#         ],
-#     )
-# )
-# data.append(
-#     (
-#         "![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)",
-#         [
-#             {
-#                 "caption": "",
-#                 "url": "../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png",
-#             }
-#         ],
-#     )
-# )
-
-# data.append(
-#     (
-#         "![This Image](image1.png) and another image ![That Image](image2.png)",
-#         [
-#             {"caption": "This Image", "url": "image1.png"},
-#             {"caption": "That Image", "url": "image2.png"},
-#         ],
-#     )
-# )
-
-
-# @pytest.mark.parametrize("data", data)
-# def test_md_image_rule_extraction(data):
-
-#     value, results = data
-#     rule = MarkdownImageRule()
-
-#     output = rule.extract_data(value)
-
-#     if results is None:
-#         assert results == output
-
-#     else:
-
-#         for r, o in zip(results, output):
-#             assert r["caption"] == o["caption"]
-#             assert r["url"] == o["url"]
-
-#     # assert output == results
 
 
 # # ----------
