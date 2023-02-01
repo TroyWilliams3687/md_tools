@@ -31,13 +31,11 @@ from typing import Optional, NamedTuple, Generator
 # - Rebuild the rules
 
 
-
-
-
+# https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
 class MarkdownLinkRuleResult(NamedTuple):
     """
-    # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
+    The result from the MarkdownLinkBaseRule.
 
     [test link](https://www.bluebill.net/test1)
 
@@ -56,13 +54,13 @@ class MarkdownLinkRuleResult(NamedTuple):
     url: str
 
 
-class MarkdownLinkTokenRule(ABC):
+class MarkdownLinkBaseRule(ABC):
     """
     Match tokens within a text string using regex and return the
     results, if any, as a MarkdownLinkRuleResult object.
     """
 
-     def __init__(self, **kwargs):
+    def __init__(self, **kwargs):
 
         self._build_regex()
         self._result = None
@@ -78,12 +76,14 @@ class MarkdownLinkTokenRule(ABC):
     @property
     def result(self) -> Optional[list[MarkdownLinkRuleResult]]:
         """
-        The list of links that matched the last selection.
+        The list of MarkdownLinkRuleResult matching the regex
         """
         return self._result
 
     def _search_text(self, text:str=None) -> list[MarkdownLinkRuleResult]:
         """
+        Search the text for matches contructing a list of
+        MarkdownLinkRuleResult objects
         """
 
         return [
@@ -92,12 +92,14 @@ class MarkdownLinkTokenRule(ABC):
                 text=m.group("text"),
                 url=m.group("url"),
             )
-            for m in self.regex.finditer(text)
+            for m in self._regex.finditer(text)
         ]
 
     def __call__(self, text:str=None) -> bool:
         """
         Does the text contain Markdown links?
+
+        If it does, use the result attribute to access the matches.
         """
         result = self._search_text(text)
 
@@ -107,13 +109,11 @@ class MarkdownLinkTokenRule(ABC):
 
 
 
-class MarkdownTokenLinkRule(MarkdownLinkTokenRule):
+class MarkdownTokenLinkRule(MarkdownLinkBaseRule):
     """
     Determine if the text contains Markdown formatted hyperlinks.
 
-    This method will implement __call__ so it can be work like a
-    function call. The function call will produce a bool indicating at
-    least one link was found within the text.
+    [test link](https://www.bluebill.net/test1)
 
     The caller can then access the result attribute for a list of
     MarkdownLinkRuleResult objects.
@@ -130,13 +130,11 @@ class MarkdownTokenLinkRule(MarkdownLinkTokenRule):
         )
 
 
-class MarkdownImageTokenLinkRule(MarkdownLinkTokenRule):
+class MarkdownImageTokenLinkRule(MarkdownLinkBaseRule):
     """
     Determine if the text contains Markdown formatted image links.
 
-    This method will implement __call__ so it can be work like a
-    function call. The function call will produce a bool indicating at
-    least one Image link was found within the text.
+    ![An Image](https://www.bluebill.net/test1/image.png)
 
     The caller can then access the result attribute for a list of
     MarkdownLinkRuleResult objects.
@@ -153,34 +151,495 @@ class MarkdownImageTokenLinkRule(MarkdownLinkTokenRule):
         )
 
 
-# We need rules for Absolute URL and Relative URL - I think these should only be invoked if an image link or hyper link is found
+class HTMLImageRuleResult(NamedTuple):
+    """
+    Given a string:
 
-# def url_path_to_dict(path):
-#     pattern = (r'^'
-#                r'((?P<schema>.+?)://)?'
-#                r'((?P<user>.+?)(:(?P<password>.*?))?@)?'
-#                r'(?P<host>.*?)'
-#                r'(:(?P<port>\d+?))?'
-#                r'(?P<path>/.*?)?'
-#                r'(?P<query>[?].*?)?'
-#                r'$'
-#                )
-#     regex = re.compile(pattern)
-#     m = regex.match(path)
-#     d = m.groupdict() if m is not None else None
+    `<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>`
 
-#     return d
+    It will return a match identifying:
+
+    full - <img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>
+    src -  ../../assets/similar_triangles.png
+
+    """
+
+    full:str
+    src:str
+
+class HTMLImageRule(MarkdownLinkBaseRule):
+    """
+    This rule can be used to examine lines of text for html image links.
+    Specifically, it is interested in img links that have the src
+    attribute set and can return that.
+
+    The image link is of the form:
+
+    - <img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>
+    - <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>
+    - <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>
+    - <img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>
+
+    <img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/> <- match
+    <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>     <- match
+    <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>     <- match
+    <img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>                             <- match
+    <img src="hello world"/> <img /> <img src="hello world"/>                                     <- match, no-match, match
+    <img alt="Similar Triangles" style="width: 600px;"/>                                          <- no-match
+    <img/>                                                                                        <- no-match
+    """
+
+    # def __init__(self, **kwargs):
+
+    #     self._build_regex()
+    #     self._result = None
+
+    def _build_regex(self):
+
+        self._regex = re.compile(
+            r"<img\s+[^>]*src=\"(?P<src>[^\"]*)\"[^>]*>",
+        )
+
+    @property
+    def result(self) -> Optional[HTMLImageRuleResult]:
+        """
+        The list of links that matched the last selection.
+        """
+        return self._result
+
+    def _search_text(self, text:str=None) -> list[HTMLImageRuleResult]:
+        """
+        Search the text for matches constructing a list of
+        HTMLImageRuleResult objects
+        """
+        return [
+            HTMLImageRuleResult(
+                full=m.group(),
+                src=m.group("src"),
+            )
+            for m in self._regex.finditer(text)
+        ]
 
 
-# class URLRule(ABC):
+
+class RelativeURLRuleResult(NamedTuple):
+    """
+    Given a string:
+
+    `./ch0_1_images.md#fig:ch0_1_images-1`
+
+    It will return a match identifying the file and the section.
+
+    file = ./ch0_1_images.md
+    section = #fig:ch0_1_images-1
+
+    """
+    file: str
+    section: Optional[str]
+
+
+class RelativeURLRule():
+    """
+    This rule will match an relative URL of the
+    form:
+
+    `./ch0_1_images.md#fig:ch0_1_images-1`
+
+    - https://github.com/tomduck/pandoc-fignos       <- not a Match
+    - http://github.com/tomduck/pandoc-fignos        <- not a Match
+    - ftp://github.com/tomduck/pandoc-fignos         <- not a Match
+    - ftp://github.com/ tomduck/ pandoc-fignos       <- not a Match
+    - ftp:// github.com/ tomduck/ pandoc-fignos      <- not a Match
+    - ftps://github.com/tomduck/pandoc-fignos        <- not a Match
+    - www.google.ca                                  <- not a Match
+    - google.com                                     <- not a Match
+    - ./ch0_1_images.md#fig:ch0_1_images-1           <- Match
+    - ./ch0_1_images.md#fig:ch0_1_images-2           <- Match
+    - ./ch0_2_equations.md#sec:ch0_2_equations-1     <- Match
+    - ./ch0_2_equations.md#eq:ch0_2_equations-1      <- Match
+    - ./ch0_2_equations.md#eq:ch0_2_equations-2      <- Match
+    - ./ch0_2_equations.md                           <- Match
+    - ./hello world.md                               <- Match
+    - #eq:ch0_2_equations-2                          <- Match
+    - #eq:ch0_2_equations-2                          <- Match
+
+    - ../assets/circle_arc.png                       <- Match
+    - ../../assets/HyperbolaAnatomyLeft.png          <- Match
+
+    # Assumptions
+
+    - It ignores the protocol://
+    - It has to contain a reference to a file or section '#'
+    - The whole string is the URL
+    - Empty strings will not be checked
+
+    Not a match if:
+
+    - Contains protocol://
+    - Empty
+
+    # Note
+
+    This rule is designed to match the entire string. For this rule to
+    work effectively the string should have already been classified by
+    the MarkDownLinkRule
+
+    - https://regex101.com/r/u1tn0I/10
+    """
+
+    def __init__(self, **kwargs):
+
+        self._build_regex()
+        self._result = None
+
+    def _build_regex(self):
+
+        self._regex = re.compile(
+            r"^(?!.*:\/\/)(?P<file>[^#]*?)(?P<section>#.*)?$",
+        )
+
+
+    @property
+    def result(self) -> Optional[RelativeURLRuleResult]:
+        """
+        The list of links that matched the last selection.
+        """
+        return self._result
+
+    def __call__(self, text:str=None) -> bool:
+        """
+        Does the text contain Markdown links?
+        """
+        m = self._regex.match(text)
+
+        self._result = RelativeURLRuleResult(**m.groupdict()) if m is not None else None
+
+        return self._result is not None
+
+
+class AbsoluteURLRuleResult(NamedTuple):
+    """
+    Given a string:
+
+    `https://github.com/tomduck/pandoc-fignos `
+
+    It will return a match identifying the URL
+
+    url = https://github.com/tomduck/pandoc-fignos
+
+    """
+    url: str
+
+
+class AbsoluteURLRule():
+    """
+
+    This rule will match an absolute URL of the form:
+
+    - https://github.com/tomduck/pandoc-fignos   <- Match
+    - http://github.com/tomduck/pandoc-fignos    <- Match
+    - ftp://github.com/tomduck/pandoc-fignos     <- Match
+    - http://github.com/ tomduck/ pandoc-fignos  <- No Match
+    - ftp:// github.com/ tomduck/ pandoc-fignos  <- No Match
+    - ftps://github.com/tomduck/pandoc-fignos    <- No Match
+    - www.google.ca                              <- No Match
+    - google.com                                 <- No Match
+
+    # Assumptions
+
+    - It looks for the protocol://
+    - Assumes the whole string is the URL, from start to finish
+    - Not designed to search in text for URL
+
+    Not a match if:
+
+    - Contains spaces
+    - Missing protocol
+    - Unrecognized protocol
+
+    # Note
+
+    This rule is designed to match the entire string. For this rule to
+    work effectively the string should have already been classified by
+    the MarkDownLinkRule
+
+    - https://regex101.com/r/u1tn0I/8
+
+    """
+
+    def __init__(self, **kwargs):
+
+        self._build_regex()
+        self._result = None
+
+    def _build_regex(self):
+
+        self._regex = re.compile(
+            r"^(?P<url>(?:https?|ftp)://\S*)$",
+        )
+
+    @property
+    def result(self) -> Optional[AbsoluteURLRuleResult]:
+        """
+        The list of links that matched the last selection.
+        """
+        return self._result
+
+    def __call__(self, text:str=None) -> bool:
+        """
+        Does the text contain Markdown links?
+        """
+        m = self._regex.match(text)
+
+        self._result = AbsoluteURLRuleResult(**m.groupdict()) if m is not None else None
+
+        return self._result is not None
+
+
+class CodeFenceRuleResult(NamedTuple):
+    """
+    """
+    full:str
+    infostring:Optional[str]
+
+
+class CodeFenceRule():
+    """
+    Examines the line to see if it matches the code block ``` or ~~~
+
+
+    - Contains at least 3 backticks, ` or 3 tildes
+    - cannot be mixed backticks and tildes
+    - can be as many leading spaces before the code fence
+    - can have an info string following the code fence
+    - the infostring is the first word after the opening of the code
+      fence
+    - can have as many spaces as is needed after the code fence and
+      before the info string
+    - the end of the document closes the code fence automatically
+
+    ``` ruby
+
+    # Some ruby code here
+
+    ```
+
+    ```python
+
+    # Some python code in here
+
+    ```
+
+    https://spec.commonmark.org/0.29/#fenced-code-blocks
+
+    """
+
+    def __init__(self, **kwargs):
+
+        self._build_regex()
+        self._result = None
+
+    def _build_regex(self):
+
+        self._regex = re.compile(
+            r"^\s*(?:`{3,}|~{3,})\s*(?P<infostring>\w*).*$",
+        )
+
+    @property
+    def result(self) -> Optional[AbsoluteURLRuleResult]:
+        """
+        The list of links that matched the last selection.
+        """
+        return self._result
+
+    def __call__(self, text:str=None) -> bool:
+        """
+        Does the text contain Markdown links?
+        """
+        m = self._regex.match(text)
+
+        self._result = CodeFenceRuleResult(**m.groupdict()) if m is not None else None
+
+        return self._result is not None
+
+
+class YamlBlockRule():
+    """
+    A YAML metadata block is a valid YAML object, delimited by a line of
+    three hyphens (---) at the top and a line of three hyphens (---) or
+    three dots (...) at the bottom.
+
+    - Contains at least 3 hyphens, - or 3 dots .
+    - cannot be mixed hyphens and dots
+    - can be as many leading spaces before the block
+    - the end of the document closes the block fence automatically
+
+    ---
+    # Yaml data
+    ID: xyz-1
+    version: 12
+    ...
+
+    """
+
+    def __init__(self, **kwargs):
+
+        self._regex = re.compile(
+            r"^(-{3}|\.{3})\s*$",
+        )
+
+    def __call__(self, text:str=None) -> bool:
+        """
+        Does the text contain Markdown links?
+        """
+        m = self._regex.match(text)
+        return m is not None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # ------------
+# # ------------
+# # ------------
+
+# # The stuff below works.
+
+# class RelativeMarkdownURLRuleResult(NamedTuple):
 #     """
+#     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
+#     The result of a RelativeMarkdownURLRule match
+
+#     full-  Full text match
+#     md - The string representing the link.
+#     section - The string representing the section anchor, if any.
+#     md_span -  A tuple(start, end) Containing the starting and ending position of the markdown link match in the string
+#     section_span - A tuple(start, end) Containing the starting and ending position of the section anchor match in the string
+
+#     """
+#     full:str
+#     md:str
+#     section:str
+#     # md_span:tuple[int,int]
+#     # section_span:tuple[int,int]
+
+
+# class MarkdownLinkRuleResult(NamedTuple):
+#     """
+#     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
+
+#     The result of a MarkDownLineRule match
+
+#     full-  Full text match
+#     text- Link description Text
+#     link- URL
+
+#     """
+#     full: str
+#     text: str
+#     url: str
+#     relative:Optional[RelativeMarkdownURLRuleResult] = None
+
+
+# # class MarkdownImageRuleResult(NamedTuple):
+# #     """
+# #     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
+
+# #     The result of a MarkDownLineRule match
+
+# #     full-  Full text match
+# #     caption- The image caption portion of the link -> ![image caption](URL)
+# #     url- URL to the image
+
+# #     """
+# #     full: str
+# #     caption: str
+# #     url: str
+# #     relative:Optional[RelativeMarkdownURLRuleResult] = None
+
+
+# # ----
+# class MatchRule(ABC):
+#     """
+#     This is an abstract base class used to define a string matching
+#     rule.
+
+#     Given a string, it applies a regex based criteria to the string to
+#     find a match. If a match is found, True is returned otherwise
+#     False. The rule will also provide a way to extract the match data -
+#     if relevant.
+
+#     NOTE: This is only a line/string based criteria match. It should
+#     only produce a True or False statement
+
+#     NOTE: This is from my notes application and is copyright TBW but
+#     under an MIT license.
 #     """
 
 #     def __init__(self, **kwargs):
+#         """
+
+#         # Parameters (kwargs)
+
+#         key: str
+#             - A reference key to identify this rule
+#         """
+
+#         self.kwargs = kwargs
+
+#         self.key = kwargs["key"] if "key" in kwargs else None
+
+#         # have a rule that indicates if the rule is active
+#         self.disabled = False
+
+#         # memoization - store the match results keyed by string
+#         self.cache_results = {}
+
+#         self.regex = None
 
 #         self._build_regex()
-#         self._result = None
+
+#     def _get_match_result(self, line:str):
+#         """
+#         This method will run the line through the regex_matcher function
+#         and return the results.
+
+#         If the results are cached for the specific line, they are
+#         returned, otherwise the results are calculated, cached and
+#         returned.
+
+#         # Parameters
+
+#         line: str
+#             - The string to classify
+
+#         # Return
+
+#         The return item depends on the concrete implementation of the
+#         _find_results method.
+
+#         """
+
+#         result = None
+
+#         if line in self.cache_results:
+#             result = self.cache_results[line]
+
+#         else:
+#             result = self._find_result(line)
+#             self.cache_results[line] = result
+
+#         return result
 
 #     @abstractmethod
 #     def _build_regex(self):
@@ -190,25 +649,193 @@ class MarkdownImageTokenLinkRule(MarkdownLinkTokenRule):
 #         """
 #         pass
 
+#     @abstractproperty
+#     def is_full_match(self):
+#         """
+#         A Rule can apply partially to a line or to the entire line. This
+#         property when True indicates that this rule will match an
+#         entire line.
+
+#         If it is false, it can partially match a line.
+
+#         The idea is to iterate through a iterable of lines
+#         (str), applying the rules to each line. If a rule matches, this
+#         property is checked. If this property is True, there is no
+#         point checking the rest of the rules as it is not possible for
+#         them to match the line further.
+
+#         In other words, the rule is True if it is not possible
+#         (or doesn't make sense) to apply other rules to the line.
+
+#         # NOTE
+
+#         This defines the getter for the system. Simply return True or
+#         False depending on the rule. This value should not be altered
+#         once the object is instantiated.
+
+#         """
+
+#         pass
+
+#     @abstractmethod
+#     def _find_result(self, line):
+#         """
+#         Given the line, find the matches.
+#         """
+#         pass
+
+#     @abstractmethod
+#     def match(self, line):
+#         """
+#         Apply the rule to the line and return a boolean value. If the
+#         line matches the rule, True is returned, otherwise False.
+
+#         # Parameters
+
+#         line: str
+#             - The string to evaluate against the matching rule.
+
+#         # Note
+
+#         We are only interested in a boolean result. There is no need for
+#         complex calculations or conversions in this method. It should
+#         be relatively light weight.
+
+#         """
+
+#         pass
+
+#     @abstractmethod
+#     def extract_data(self, line, **kwargs):
+#         """
+#         Apply the rule to the line and return the extracted data in the
+#         expected form.
+
+#         # Parameters
+
+#         line: str
+#             - The string to evaluate against the matching rule.
+
+#         # Return
+
+#         The return value(s) highly depends on the concrete
+#         implementation.
+
+#         """
+
+#         pass
+
+
+
+# class MarkdownLinkRule(MatchRule):
+#     """
+#     Examines the markdown line for valid markdown links. If the line
+#     contains one or more links, it is considered a match.
+
+
+#     # Markdown Link
+
+#     A markdown link is of the form [descriptive text](URL link). There
+#     can be multiple links within a line.
+
+#     ```
+#     - [pandoc-fignos](https://github.com/tomduck/pandoc-fignos): Numbers
+#       figures and figure references.
+
+#     The images section will walk you through how to add and reference
+#     images so that the pandoc system can properly number them. For
+#     example, this [figure]
+#     (./ch0_1_images.md#fig:ch0_1_images-1) illustrates a VOD curve for
+#     a packaged watergel explosive and this [figure]
+#     (./ch0_1_images.md#fig:ch0_1_images-2) depicts a circular arc.
+
+#     ## [Equations](./ch0_2_equations.md#sec:ch0_2_equations-1)
+
+#     The equations section will discuss how to use equations and
+#     reference them properly. See the [internal energy equation]
+#     (./ch0_2_equations.md#eq:ch0_2_equations-1) or the
+#     [detonation pressure]
+#     (./ch0_2_equations.md#eq:ch0_2_equations-2)
+#     ```
+
+#     """
+
+#     def _build_regex(self):
+#         """
+#         Construct the regex that will match the markdown formatted links
+#         in the line.
+#         """
+
+#         # use negative look behind - The regex has to be like this
+#         # otherwise it'll capture too far if we don't have the
+#         # non-greedy option
+#         local_regex = r"(?<!!)(?:\[(?P<text>.*?)\]\((?P<url>.*?)\))"
+
+#         self.regex = re.compile(local_regex)
+
 #     @property
-#     def result(self) -> Optional[dict]:
+#     def is_full_match(self):
 #         """
-#         The list of links that matched the last selection.
+#         This rule doesn't match the full string, so other rules can be
+#         applied to the same line of text.
 #         """
-#         return self._result
 
-#     def __call__(self, text:str=None) -> bool:
+#         return False
+
+#     def _find_result(self, line):
+#         """ """
+
+#         result = [
+#             MarkdownLinkRuleResult(
+#                 full=m.group(),
+#                 text=m.group("text"),
+#                 url=m.group("url"),
+#             )
+#             for m in self.regex.finditer(line)
+#         ]
+
+#         return result if len(result) > 0 else None
+
+#     def match(self, line):
 #         """
-#         Does the text contain Markdown links?
+#         If the line matches, True is returned.
 #         """
-#         m = self._regex.match(text)
 
-#         self._result = m.groupdict() if m is not None else None
+#         result = self._get_match_result(line)
 
-#         return self._result is not None
+#         return result is not None
+
+#     def extract_data(self, line:str, **kwargs) -> Optional[list[MarkdownLinkRuleResult]]:
+#         """
+#         Attempts to extract the information from the line if there is a
+#         match. If there is no match, None is returned.
+
+#         # Return
+
+#         A match will return a list of MarkdownLinkRuleResult objects
+#         that contain the 'text' of the link and the 'link' URL and the
+#         `full` markdown match.
+
+#         If no match is found, None is returned
+#         """
+
+#         return self._get_match_result(line)
 
 
-# class AbsoluteURLRule():
+# # ----------------
+# # Match Standard URL in markdown links:
+# # regex -> r"(?:\[.*?\])\((?P<url>(?:https?|ftp)://.*?)\)"
+
+# # - [pandoc-fignos](https://github.com/tomduck/pandoc-fignos) <- Match
+# # - [pandoc-fignos](http://github.com/tomduck/pandoc-fignos) <- Match
+# # - [pandoc-fignos](ftp://github.com/tomduck/pandoc-fignos) <- Match
+# # - [pandoc-fignos](ftps://github.com/tomduck/pandoc-fignos) <- NO Match
+
+# # NOTE: I don't think this is required....
+# # -----------------
+
+
+# class AbsoluteURLRule(MatchRule):
 #     """
 
 #     This rule will match an absolute URL of the form:
@@ -245,1283 +872,758 @@ class MarkdownImageTokenLinkRule(MarkdownLinkTokenRule):
 #     """
 
 #     def _build_regex(self):
+#         """
+#         Construct and cache the regex.
+#         """
 
-#         self._regex = re.compile(
-#             r"^(?P<url>(?:https?|ftp)://\S*)$",
-#         )
+#         local_regex = r"^(?P<url>(?:https?|ftp)://\S*)$"
 
+#         self.regex = re.compile(local_regex)
 
-class RelativeURLRuleResult(NamedTuple):
-    """
+#     @property
+#     def is_full_match(self):
+#         """
+#         If the rule matches, there is no point applying other rules to
+#         the string.
 
-    """
-    file: str
-    section: Optional[str]
+#         In this case, this rule is meant to match the entire string.
+#         """
 
+#         return True
 
-class RelativeURLRule():
-    """
-    This rule will match an relative URL of the
-    form: "./ch0_1_images.md#fig:ch0_1_images-1"
+#     def _find_result(self, line):
+#         """ """
 
-    - https://github.com/tomduck/pandoc-fignos       <- not a Match
-    - http://github.com/tomduck/pandoc-fignos        <- not a Match
-    - ftp://github.com/tomduck/pandoc-fignos         <- not a Match
-    - ftp://github.com/ tomduck/ pandoc-fignos       <- not a Match
-    - ftp:// github.com/ tomduck/ pandoc-fignos      <- not a Match
-    - ftps://github.com/tomduck/pandoc-fignos        <- not a Match
-    - www.google.ca                                  <- not a Match
-    - google.com                                     <- not a Match
-    - ./ch0_1_images.md#fig:ch0_1_images-1           <- Match
-    - ./ch0_1_images.md#fig:ch0_1_images-2           <- Match
-    - ./ch0_2_equations.md#sec:ch0_2_equations-1     <- Match
-    - ./ch0_2_equations.md#eq:ch0_2_equations-1      <- Match
-    - ./ch0_2_equations.md#eq:ch0_2_equations-2      <- Match
-    - ./ch0_2_equations.md                           <- Match
-    - ./hello world.md                               <- Match
-    - #eq:ch0_2_equations-2                          <- Match
-    - #eq:ch0_2_equations-2                          <- Match
+#         result = self.regex.match(line)
 
-    - ../assets/circle_arc.png                       <- Match
-    - ../../assets/HyperbolaAnatomyLeft.png          <- Match
+#         return result
 
-    # Assumptions
+#     def match(self, line):
+#         """
+#         If the string matches the regex, True is returned.
+#         """
 
-    - It ignores the protocol://
-    - It has to contain a reference to a .md file or section '#'
-    - The whole string is the URL
-    - Empty strings will not be checked
+#         result = self._get_match_result(line)
 
-    Not a match if:
+#         return result is not None
 
-    - Contains protocol://
-    - Empty
-    - missing .md, .png, jpg, jpeg, gif
-    - missing '#'
+#     def extract_data(self, line, **kwargs):
+#         """ """
 
-    # Note
+#         result = self._get_match_result(line)
 
-    This rule is designed to match the entire string. For this rule to
-    work effectively the string should have already been classified by
-    the MarkDownLinkRule
+#         if result:
+#             return result.group("url")
 
-    - https://regex101.com/r/u1tn0I/10
+#         else:
+#             return None
 
-    """
 
-        def __init__(self, **kwargs):
 
-        self._build_regex()
-        self._result = None
-
-    def _build_regex(self):
-
-        self._regex = re.compile(
-            r"^(?!.*:\/\/)(?P<file>[^#]*?)(?P<section>#.*)?$",
-        )
-
-
-    @property
-    def result(self) -> Optional[RelativeURLRuleResult]:
-        """
-        The list of links that matched the last selection.
-        """
-        return self._result
-
-    def __call__(self, text:str=None) -> bool:
-        """
-        Does the text contain Markdown links?
-        """
-        m = self._regex.match(text)
-
-        self._result = RelativeURLRuleResult(**m.groupdict()) if m is not None else None
-
-        return self._result is not None
-
-
-
-class MarkdownRelativeLinkResult(NamedTuple):
-    """
-
-    """
-    line: str
-    links: list[RelativeURLRuleResult]
-
-
-
-# NOTE: This shouldn't be here. This should be about the rules to find
-# various tokens and lines within a markdown file, not the following.
-# That should be in the markdown file...
-
-def find_relative_markdown_links(text:list[str]=None) -> Generator[MarkdownRelativeLinkResult, None, None]:
-    """
-    Search the text for lines containing markdown links that are
-    relative returning a tuple containing the
-
-    [link text](./file.txt)
-    [link text](../dir1/file.txt)
-
-
-    usage:
-
-    for links in find_relative_markdown_links(text):
-        print(f'Line: `{links.line}` contains: {links.links}')
-
-    """
-
-    is_markdown_link = MarkdownTokenLinkRule()
-    is_relative_url = RelativeURLRule()
-
-    for line in text:
-
-        if is_markdown_link(line):
-
-            relative_urls = []
-
-            for link in ml.result:
-
-                if is_relative_url(link.url):
-                    relative_urls.append(is_relative_url.result)
-
-            # relative_urls = [link.url for link in ml.result if is_relative_url(link.url)]
-
-            yield MarkdownRelativeLinkResult(line, relative_urls)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ------------
-# ------------
-# ------------
-
-# The stuff below works.
-
-class RelativeMarkdownURLRuleResult(NamedTuple):
-    """
-    # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
-
-    The result of a RelativeMarkdownURLRule match
-
-    full-  Full text match
-    md - The string representing the link.
-    section - The string representing the section anchor, if any.
-    md_span -  A tuple(start, end) Containing the starting and ending position of the markdown link match in the string
-    section_span - A tuple(start, end) Containing the starting and ending position of the section anchor match in the string
-
-    """
-    full:str
-    md:str
-    section:str
-    # md_span:tuple[int,int]
-    # section_span:tuple[int,int]
-
-
-class MarkdownLinkRuleResult(NamedTuple):
-    """
-    # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
-
-    The result of a MarkDownLineRule match
-
-    full-  Full text match
-    text- Link description Text
-    link- URL
-
-    """
-    full: str
-    text: str
-    url: str
-    relative:Optional[RelativeMarkdownURLRuleResult] = None
-
-
-# class MarkdownImageRuleResult(NamedTuple):
+# class RelativeMarkdownURLRule(MatchRule):
 #     """
-#     # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
-#     The result of a MarkDownLineRule match
+#     This rule will match an relative URL of the
+#     form: "./ch0_1_images.md#fig:ch0_1_images-1"
 
-#     full-  Full text match
-#     caption- The image caption portion of the link -> ![image caption](URL)
-#     url- URL to the image
+#     - https://github.com/tomduck/pandoc-fignos       <- not a Match
+#     - http://github.com/tomduck/pandoc-fignos        <- not a Match
+#     - ftp://github.com/tomduck/pandoc-fignos         <- not a Match
+#     - ftp://github.com/ tomduck/ pandoc-fignos       <- not a Match
+#     - ftp:// github.com/ tomduck/ pandoc-fignos      <- not a Match
+#     - ftps://github.com/tomduck/pandoc-fignos        <- not a Match
+#     - www.google.ca                                  <- not a Match
+#     - google.com                                     <- not a Match
+#     - ./ch0_1_images.md#fig:ch0_1_images-1           <- Match
+#     - ./ch0_1_images.md#fig:ch0_1_images-2           <- Match
+#     - ./ch0_2_equations.md#sec:ch0_2_equations-1     <- Match
+#     - ./ch0_2_equations.md#eq:ch0_2_equations-1      <- Match
+#     - ./ch0_2_equations.md#eq:ch0_2_equations-2      <- Match
+#     - ./ch0_2_equations.md                           <- Match
+#     - ./hello world.md                               <- Match
+#     - #eq:ch0_2_equations-2                          <- Match
+#     - #eq:ch0_2_equations-2                          <- Match
+
+#     - ../assets/circle_arc.png                       <- Match
+#     - ../../assets/HyperbolaAnatomyLeft.png          <- Match
+
+#     # Assumptions
+
+#     - It ignores the protocol://
+#     - It has to contain a reference to a .md file or section '#'
+#     - The whole string is the URL
+#     - Empty strings will not be checked
+
+#     Not a match if:
+
+#     - Contains protocol://
+#     - Empty
+#     - missing .md, .png, jpg, jpeg, gif
+#     - missing '#'
+
+#     # Note
+
+#     This rule is designed to match the entire string. For this rule to
+#     work effectively the string should have already been classified by
+#     the MarkDownLinkRule
+
+#     - https://regex101.com/r/u1tn0I/10
 
 #     """
-#     full: str
-#     caption: str
-#     url: str
-#     relative:Optional[RelativeMarkdownURLRuleResult] = None
 
+#     def _build_regex(self):
+#         """
+#         Construct and cache the regex.
+#         """
 
-# ----
-class MatchRule(ABC):
-    """
-    This is an abstract base class used to define a string matching
-    rule.
+#         local_regex = r"^(?!.*:\/\/)(?P<md>[^#]*?)(?P<section>#.*)?$"
 
-    Given a string, it applies a regex based criteria to the string to
-    find a match. If a match is found, True is returned otherwise
-    False. The rule will also provide a way to extract the match data -
-    if relevant.
+#         self.regex = re.compile(local_regex)
+
+#     @property
+#     def is_full_match(self):
+#         """
+#         If the rule matches, there is no point applying other rules to
+#         the string.
 
-    NOTE: This is only a line/string based criteria match. It should
-    only produce a True or False statement
+#         In this case, this rule is meant to match the entire string.
+#         """
+
+#         return True
 
-    NOTE: This is from my notes application and is copyright TBW but
-    under an MIT license.
-    """
+#     def _find_result(self, line):
+#         """ """
 
-    def __init__(self, **kwargs):
-        """
+#         result = self.regex.match(line)
 
-        # Parameters (kwargs)
+#         if result:
+#             return RelativeMarkdownURLRuleResult(
+#                 full=result.group(),
+#                 md=result.group("md"),
+#                 section=result.group("section"),
+#                 # md_span=result.span("md"),
+#                 # section_span=result.span("section"),
+#             )
 
-        key: str
-            - A reference key to identify this rule
-        """
 
-        self.kwargs = kwargs
+#             # return {
+#             #     "full": result.group(),
+#             #     "md_span": result.span(
+#             #         "md"
+#             #     ),  # tuple(start, end) <- start and end position of the match
+#             #     "md": result.group("md"),
+#             #     "section_span": result.span("section"),
+#             #     "section": result.group("section"),
+#             # }
+
+#         else:
+#             return None
 
-        self.key = kwargs["key"] if "key" in kwargs else None
+#     def match(self, line):
+#         """
+#         If the string matches the regex, True is returned.
+#         """
 
-        # have a rule that indicates if the rule is active
-        self.disabled = False
+#         result = self._get_match_result(line)
 
-        # memoization - store the match results keyed by string
-        self.cache_results = {}
+#         return result is not None
 
-        self.regex = None
+#     def extract_data(self, line, **kwargs):
+#         """ """
 
-        self._build_regex()
+#         return self._get_match_result(line)
 
-    def _get_match_result(self, line:str):
-        """
-        This method will run the line through the regex_matcher function
-        and return the results.
 
-        If the results are cached for the specific line, they are
-        returned, otherwise the results are calculated, cached and
-        returned.
+# # ---------
+# # Markdown Image Links
 
-        # Parameters
 
-        line: str
-            - The string to classify
+# class MarkdownImageRule(MatchRule):
+#     """
+#     This rule can be used to examine lines of text for markdown image
+#     links. It can also extract the data from the markdown image links.
 
-        # Return
 
-        The return item depends on the concrete implementation of the
-        _find_results method.
+#     # Markdown Image link
 
-        """
+#     A markdown image link is of the form ![descriptive text](URL link).
+#     There can be multiple links within a line.
 
-        result = None
+#     ```
+#     These don't match:
+#     - [pandoc-fignos](https://github.com/tomduck/pandoc-fignos): Numbers
+#       figures and figure references. The images section will walk you
+#       through how to add and reference images so that the pandoc system
+#       can properly number them. For example, this [figure]
+#       (./ch0_1_images.md#fig:ch0_1_images-1) illustrates a VOD curve
+#       for a packaged watergel explosive and this [figure]
+#       (./ch0_1_images.md#fig:ch0_1_images-2) depicts a circular arc.
+#     ## [Equations](./ch0_2_equations.md#sec:ch0_2_equations-1) The
+#        equations section will discuss how to use equations and
+#        reference them properly. See the [internal energy equation]
+#        (./ch0_2_equations.md#eq:ch0_2_equations-1) or the
+#        [detonation pressure]
+#        (./ch0_2_equations.md#eq:ch0_2_equations-2) This string does not
+#        contain any links
 
-        if line in self.cache_results:
-            result = self.cache_results[line]
 
-        else:
-            result = self._find_result(line)
-            self.cache_results[line] = result
+#     These Match:
+#     ![Caption.](image.png){#fig:id}
+#     ![Caption.](image.png){#fig:id tag="B.1"}
+#     ![This is a sample image representing the VOD curve of a packaged
+#      Watergel explosive.]
+#      (../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png)
+#      {#fig:ch0_1_images-1 width=100%}
+#     ![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)
+#     ![](../../assets/l2mxAo3IR1dc3Wrgt7Ulqhcm_8nwqFw5UY7pUI3X0oI=.png)
+#     ![](../../assets/Y7jjv0ceQH5Ew5O32U2Z_N7ARBfKn2FnHnUoUt_DYbA=.png)
+#     ![](../../assets/eOvy-JcdA7pjoDJS4rIgG5RgDfYJ4PY11Owbgy5DHWM=.png)
+#     ![](../../assets/XwMrG0o__iLF5nStoSPUuJ81ffxafRBWAVnEcGo10Yo=.png)
+#     ```
 
-        return result
+#     """
 
-    @abstractmethod
-    def _build_regex(self):
-        """
-        A method to construct the regular expression used by the
-        classifier rule.
-        """
-        pass
+#     def _build_regex(self):
+#         """
+#         Construct the regex that will match the markdown image links in
+#         the line.
+#         """
 
-    @abstractproperty
-    def is_full_match(self):
-        """
-        A Rule can apply partially to a line or to the entire line. This
-        property when True indicates that this rule will match an
-        entire line.
+#         local_regex = r"(?:[!]\[(?P<caption>.*?)\])\((?P<url>.*?)\)"
 
-        If it is false, it can partially match a line.
+#         self.regex = re.compile(local_regex)
 
-        The idea is to iterate through a iterable of lines
-        (str), applying the rules to each line. If a rule matches, this
-        property is checked. If this property is True, there is no
-        point checking the rest of the rules as it is not possible for
-        them to match the line further.
+#     @property
+#     def is_full_match(self):
+#         """
+#         This rule doesn't match the full string, so other rules can be
+#         applied to the same line of text.
+#         """
 
-        In other words, the rule is True if it is not possible
-        (or doesn't make sense) to apply other rules to the line.
+#         return False
 
-        # NOTE
+#     def _find_result(self, line):
+#         """ """
 
-        This defines the getter for the system. Simply return True or
-        False depending on the rule. This value should not be altered
-        once the object is instantiated.
+#         result = [
+#             MarkdownLinkRuleResult(
+#                 full=m.group(),
+#                 text=m.group("caption"),
+#                 url=m.group("url"),
+#             )
+#             for m in self.regex.finditer(line)
+#         ]
 
-        """
+#         return result if len(result) > 0 else None
 
-        pass
+#     def match(self, line):
+#         """
+#         True is returned if the regex finds a match in the line of text.
+#         """
 
-    @abstractmethod
-    def _find_result(self, line):
-        """
-        Given the line, find the matches.
-        """
-        pass
+#         result = self._get_match_result(line)
 
-    @abstractmethod
-    def match(self, line):
-        """
-        Apply the rule to the line and return a boolean value. If the
-        line matches the rule, True is returned, otherwise False.
+#         return result is not None
 
-        # Parameters
+#     def extract_data(self, line, **kwargs):
+#         """
+#         Attempts to extract the information from the line if there is a
+#         match. If there is no match, None is returned.
 
-        line: str
-            - The string to evaluate against the matching rule.
+#         # Return
 
-        # Note
+#         A match will return a list of dictionaries that contain
+#         the 'caption' and the 'image' URL.
 
-        We are only interested in a boolean result. There is no need for
-        complex calculations or conversions in this method. It should
-        be relatively light weight.
+#         [{'caption':'image caption', 'image':'URL'}]
 
-        """
+#         If no match is found, None is returned
 
-        pass
+#         """
 
-    @abstractmethod
-    def extract_data(self, line, **kwargs):
-        """
-        Apply the rule to the line and return the extracted data in the
-        expected form.
+#         return self._get_match_result(line)
 
-        # Parameters
 
-        line: str
-            - The string to evaluate against the matching rule.
+# class HTMLImageRule(MatchRule):
+#     """
+#     This rule can be used to examine lines of text for html image links.
+#     Specifically, it is interested in img links that have the src
+#     attribute set and can return that.
 
-        # Return
+#     The image link is of the form:
 
-        The return value(s) highly depends on the concrete
-        implementation.
+#     - <img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>
+#     - <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>
+#     - <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>
+#     - <img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>
 
-        """
+#     <img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/> <- match
+#     <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>     <- match
+#     <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>     <- match
+#     <img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>                             <- match
+#     <img src="hello world"/> <img /> <img src="hello world"/>                                     <- match, no-match, match
+#     <img alt="Similar Triangles" style="width: 600px;"/>                                          <- no-match
+#     <img/>                                                                                        <- no-match
 
-        pass
+#     ```
 
+#     """
 
+#     def _build_regex(self):
+#         """
+#         Construct the regex that will match the HTML image links in the
+#         line.
+#         """
 
-class MarkdownLinkRule(MatchRule):
-    """
-    Examines the markdown line for valid markdown links. If the line
-    contains one or more links, it is considered a match.
+#         local_regex = r"<img\s+[^>]*src=\"(?P<src>[^\"]*)\"[^>]*>"
 
+#         self.regex = re.compile(local_regex)
 
-    # Markdown Link
+#     @property
+#     def is_full_match(self):
+#         """
+#         This rule doesn't match the full string, so other rules can be
+#         applied to the same line of text.
+#         """
 
-    A markdown link is of the form [descriptive text](URL link). There
-    can be multiple links within a line.
+#         return False
 
-    ```
-    - [pandoc-fignos](https://github.com/tomduck/pandoc-fignos): Numbers
-      figures and figure references.
+#     def _find_result(self, line):
+#         """ """
 
-    The images section will walk you through how to add and reference
-    images so that the pandoc system can properly number them. For
-    example, this [figure]
-    (./ch0_1_images.md#fig:ch0_1_images-1) illustrates a VOD curve for
-    a packaged watergel explosive and this [figure]
-    (./ch0_1_images.md#fig:ch0_1_images-2) depicts a circular arc.
+#         result = [
+#             {
+#                 "full": m.group(),
+#                 "src": m.group("src"),
+#             }
+#             for m in self.regex.finditer(line)
+#         ]
 
-    ## [Equations](./ch0_2_equations.md#sec:ch0_2_equations-1)
+#         return result if len(result) > 0 else None
 
-    The equations section will discuss how to use equations and
-    reference them properly. See the [internal energy equation]
-    (./ch0_2_equations.md#eq:ch0_2_equations-1) or the
-    [detonation pressure]
-    (./ch0_2_equations.md#eq:ch0_2_equations-2)
-    ```
+#     def match(self, line):
+#         """
+#         True is returned if the regex finds a match in the line of text.
+#         """
 
-    """
+#         result = self._get_match_result(line)
 
-    def _build_regex(self):
-        """
-        Construct the regex that will match the markdown formatted links
-        in the line.
-        """
+#         return result is not None
 
-        # use negative look behind - The regex has to be like this
-        # otherwise it'll capture too far if we don't have the
-        # non-greedy option
-        local_regex = r"(?<!!)(?:\[(?P<text>.*?)\]\((?P<url>.*?)\))"
+#     def extract_data(self, line, **kwargs):
+#         """
+#         Attempts to extract the information from the line if there is a
+#         match. If there is no match, None is returned.
 
-        self.regex = re.compile(local_regex)
+#         {'full':data, 'src':data}
 
-    @property
-    def is_full_match(self):
-        """
-        This rule doesn't match the full string, so other rules can be
-        applied to the same line of text.
-        """
+#         """
 
-        return False
+#         return self._get_match_result(line)
 
-    def _find_result(self, line):
-        """ """
 
-        result = [
-            MarkdownLinkRuleResult(
-                full=m.group(),
-                text=m.group("text"),
-                url=m.group("url"),
-            )
-            for m in self.regex.finditer(line)
-        ]
+# class ATXHeaderRule(MatchRule):
+#     """
+#     Examines the line to see if it matches the definition of an ATX
+#     header in markdown.
 
-        return result if len(result) > 0 else None
+#     # Section One
 
-    def match(self, line):
-        """
-        If the line matches, True is returned.
-        """
+#     ## Section Two
 
-        result = self._get_match_result(line)
+#     ### Section Three
 
-        return result is not None
+#     #### four
 
-    def extract_data(self, line:str, **kwargs) -> Optional[list[MarkdownLinkRuleResult]]:
-        """
-        Attempts to extract the information from the line if there is a
-        match. If there is no match, None is returned.
+#     ##### five
 
-        # Return
+#     ###### six
 
-        A match will return a list of MarkdownLinkRuleResult objects
-        that contain the 'text' of the link and the 'link' URL and the
-        `full` markdown match.
+#     [Definitions](https://spec.commonmark.org/0.24/#atx-headings):
 
-        If no match is found, None is returned
-        """
+#     - It starts with an octothorpe
+#     - It can have up to 6 octothorpes (commonmark)
+#     - There can be up to 3 spaces before the start of the ATX Heading
+#     - There is at least 1 space after the last octothrope and the text
 
-        return self._get_match_result(line)
+#     # Reference
 
+#     https://spec.commonmark.org/0.24/#atx-headings
 
-# ----------------
-# Match Standard URL in markdown links:
-# regex -> r"(?:\[.*?\])\((?P<url>(?:https?|ftp)://.*?)\)"
 
-# - [pandoc-fignos](https://github.com/tomduck/pandoc-fignos) <- Match
-# - [pandoc-fignos](http://github.com/tomduck/pandoc-fignos) <- Match
-# - [pandoc-fignos](ftp://github.com/tomduck/pandoc-fignos) <- Match
-# - [pandoc-fignos](ftps://github.com/tomduck/pandoc-fignos) <- NO Match
 
-# NOTE: I don't think this is required....
-# -----------------
+#     """
 
+#     def __init__(self, **kwargs):
+#         """
 
-class AbsoluteURLRule(MatchRule):
-    """
+#         # Parameters (kwargs)
 
-    This rule will match an absolute URL of the form:
+#         key: str
+#             - The reference key to identify this rule
 
-    - https://github.com/tomduck/pandoc-fignos   <- Match
-    - http://github.com/tomduck/pandoc-fignos    <- Match
-    - ftp://github.com/tomduck/pandoc-fignos     <- Match
-    - http://github.com/ tomduck/ pandoc-fignos  <- No Match
-    - ftp:// github.com/ tomduck/ pandoc-fignos  <- No Match
-    - ftps://github.com/tomduck/pandoc-fignos    <- No Match
-    - www.google.ca                              <- No Match
-    - google.com                                 <- No Match
+#         count: int
+#             - The level of ATX header to match (1 - 6)
 
-    # Assumptions
+#         """
 
-    - It looks for the protocol://
-    - Assumes the whole string is the URL, from start to finish
-    - Not designed to search in text for URL
+#         self.atx_count = kwargs["count"] if "count" in kwargs else 1
 
-    Not a match if:
+#         if self.atx_count < 1 or self.atx_count > 6:
+#             raise ValueError(
+#                 f"Out of range for count = {self.atx_count}. It has to be between 1 and 6."
+#             )
 
-    - Contains spaces
-    - Missing protocol
-    - Unrecognized protocol
+#         # call super init last because it will call the _build_regex
+#         # method
+#         super().__init__(**kwargs)
 
-    # Note
+#     def _build_regex(self):
+#         """
+#         Construct the regex that will match the markdown formatted links
+#         in the line.
+#         """
 
-    This rule is designed to match the entire string. For this rule to
-    work effectively the string should have already been classified by
-    the MarkDownLinkRule
+#         # # Hello World   <- match
+#         #  # Hello World  <- match
+#         #   # Hello World <- match
+#         #    # Hello World <- no match
+#         #     # Hello World <- no match
+#         #      # Hello World <- no match
 
-    - https://regex101.com/r/u1tn0I/8
+#         local_regex = r"(?:^\s{{0,3}}\#{{{0}}}\s+)(?P<title>.*)$".format(self.atx_count)
 
-    """
+#         self.regex = re.compile(local_regex)
 
-    def _build_regex(self):
-        """
-        Construct and cache the regex.
-        """
+#     @property
+#     def is_full_match(self):
+#         """
+#         This rule doesn't match the full string, so other rules can be
+#         applied to the same line of text.
+#         """
 
-        local_regex = r"^(?P<url>(?:https?|ftp)://\S*)$"
+#         return False
 
-        self.regex = re.compile(local_regex)
+#     def _find_result(self, line):
+#         """ """
 
-    @property
-    def is_full_match(self):
-        """
-        If the rule matches, there is no point applying other rules to
-        the string.
+#         result = self.regex.match(line)
 
-        In this case, this rule is meant to match the entire string.
-        """
+#         if result:
+#             return result.group("title")
 
-        return True
+#         else:
+#             return None
 
-    def _find_result(self, line):
-        """ """
+#     def match(self, line):
+#         """
+#         True is returned if the regex finds a match in the line of text.
+#         """
 
-        result = self.regex.match(line)
+#         result = self._get_match_result(line)
 
-        return result
+#         return result is not None
 
-    def match(self, line):
-        """
-        If the string matches the regex, True is returned.
-        """
+#     def extract_data(self, line, **kwargs):
+#         """
+#         Attempts to extract the information from the line if there is a
+#         match. If there is no match, None is returned.
 
-        result = self._get_match_result(line)
+#         # Return
 
-        return result is not None
+#         A match will return the title text.
 
-    def extract_data(self, line, **kwargs):
-        """ """
+#         If no match is found, None is returned
 
-        result = self._get_match_result(line)
+#         """
+#         return self._get_match_result(line)
 
-        if result:
-            return result.group("url")
 
-        else:
-            return None
+# class MarkdownAttributeSyntax(MatchRule):
+#     """
+#     Looks for any attribute syntax in the markdown line. We are
+#     interested in the id portion which should be the first hashtag
+#     item: {#index-section-01}. This will return 'index-section-01'
 
+#     ```
+#     # Header 1 {#header_1 .sidebar}
 
+#     ## Header 2 {#header_2 .topbar}
 
-class RelativeMarkdownURLRule(MatchRule):
-    """
+#     ![image](./path/to/image.png) {#image_1 .image_link}
 
-    This rule will match an relative URL of the
-    form: "./ch0_1_images.md#fig:ch0_1_images-1"
+#     ![image](./path/to/image.png) {.image_link #image_1}
 
-    - https://github.com/tomduck/pandoc-fignos       <- not a Match
-    - http://github.com/tomduck/pandoc-fignos        <- not a Match
-    - ftp://github.com/tomduck/pandoc-fignos         <- not a Match
-    - ftp://github.com/ tomduck/ pandoc-fignos       <- not a Match
-    - ftp:// github.com/ tomduck/ pandoc-fignos      <- not a Match
-    - ftps://github.com/tomduck/pandoc-fignos        <- not a Match
-    - www.google.ca                                  <- not a Match
-    - google.com                                     <- not a Match
-    - ./ch0_1_images.md#fig:ch0_1_images-1           <- Match
-    - ./ch0_1_images.md#fig:ch0_1_images-2           <- Match
-    - ./ch0_2_equations.md#sec:ch0_2_equations-1     <- Match
-    - ./ch0_2_equations.md#eq:ch0_2_equations-1      <- Match
-    - ./ch0_2_equations.md#eq:ch0_2_equations-2      <- Match
-    - ./ch0_2_equations.md                           <- Match
-    - ./hello world.md                               <- Match
-    - #eq:ch0_2_equations-2                          <- Match
-    - #eq:ch0_2_equations-2                          <- Match
+#     # Header 1 { #header_1 .sidebar}
 
-    - ../assets/circle_arc.png                       <- Match
-    - ../../assets/HyperbolaAnatomyLeft.png          <- Match
+#     ## Header 2 {        #header_2 .topbar}
 
-    # Assumptions
+#     ![image](./path/to/image.png) {xxx     #image_1 .image_link}
 
-    - It ignores the protocol://
-    - It has to contain a reference to a .md file or section '#'
-    - The whole string is the URL
-    - Empty strings will not be checked
+#     ```
 
-    Not a match if:
+#     """
 
-    - Contains protocol://
-    - Empty
-    - missing .md, .png, jpg, jpeg, gif
-    - missing '#'
+#     def _build_regex(self):
+#         """
+#         Construct the regex that will match the markdown formatted links
+#         in the line.
 
-    # Note
+#         """
 
-    This rule is designed to match the entire string. For this rule to
-    work effectively the string should have already been classified by
-    the MarkDownLinkRule
+#         local_regex = r"(?:\{(?:.*)(?:\#)(?P<id>\S+)(?:.*)\})"  # can change \S for \w
 
-    - https://regex101.com/r/u1tn0I/10
+#         self.regex = re.compile(local_regex)
 
-    """
+#     @property
+#     def is_full_match(self):
+#         """
+#         This rule doesn't match the full string, so other rules can be
+#         applied to the same line of text.
+#         """
 
-    def _build_regex(self):
-        """
-        Construct and cache the regex.
-        """
+#         return False
 
-        local_regex = r"^(?!.*:\/\/)(?P<md>[^#]*?)(?P<section>#.*)?$"
+#     def _find_result(self, line):
+#         """ """
 
-        self.regex = re.compile(local_regex)
+#         result = [
+#             {"full": m.group(), "id": m.group("id")} for m in self.regex.finditer(line)
+#         ]
 
-    @property
-    def is_full_match(self):
-        """
-        If the rule matches, there is no point applying other rules to
-        the string.
+#         return result if len(result) > 0 else None
 
-        In this case, this rule is meant to match the entire string.
-        """
+#     def match(self, line):
+#         """
+#         If the line matches, True is returned.
+#         """
 
-        return True
+#         result = self._get_match_result(line)
 
-    def _find_result(self, line):
-        """ """
+#         return result is not None
 
-        result = self.regex.match(line)
+#     def extract_data(self, line, **kwargs):
+#         """
+#         Attempts to extract the information from the line if there is a
+#         match. If there is no match, None is returned.
 
-        if result:
-            return RelativeMarkdownURLRuleResult(
-                full=result.group(),
-                md=result.group("md"),
-                section=result.group("section"),
-                # md_span=result.span("md"),
-                # section_span=result.span("section"),
-            )
+#         # Return
 
+#         A match will return a list of dictionaries that contain
+#         the 'text' of the link and the 'link' URL.
 
-            # return {
-            #     "full": result.group(),
-            #     "md_span": result.span(
-            #         "md"
-            #     ),  # tuple(start, end) <- start and end position of the match
-            #     "md": result.group("md"),
-            #     "section_span": result.span("section"),
-            #     "section": result.group("section"),
-            # }
+#         [{'full': 'full match', 'id':'Link description Text'}]
 
-        else:
-            return None
+#         If no match is found, None is returned
 
-    def match(self, line):
-        """
-        If the string matches the regex, True is returned.
-        """
+#         """
 
-        result = self._get_match_result(line)
+#         return self._get_match_result(line)
 
-        return result is not None
 
-    def extract_data(self, line, **kwargs):
-        """ """
+# # Find Code Fence
 
-        return self._get_match_result(line)
 
+# class CodeFenceClassifier(MatchRule):
+#     """
+#     Examines the line to see if it matches the code block ``` or ~~~
 
-# ---------
-# Markdown Image Links
 
+#     - Contains at least 3 backticks, ` or 3 tildes
+#     - cannot be mixed backticks and tildes
+#     - can be as many leading spaces before the code fence
+#     - can have an info string following the code fence
+#     - the infostring is the first word after the opening of the code
+#       fence
+#     - can have as many spaces as is needed after the code fence and
+#       before the info string
+#     - the end of the document closes the code fence automatically
 
-class MarkdownImageRule(MatchRule):
-    """
-    This rule can be used to examine lines of text for markdown image
-    links. It can also extract the data from the markdown image links.
+#     ``` ruby
 
+#     # Some ruby code here
 
-    # Markdown Image link
+#     ```
 
-    A markdown image link is of the form ![descriptive text](URL link).
-    There can be multiple links within a line.
+#     ```python
 
-    ```
-    These don't match:
-    - [pandoc-fignos](https://github.com/tomduck/pandoc-fignos): Numbers
-      figures and figure references. The images section will walk you
-      through how to add and reference images so that the pandoc system
-      can properly number them. For example, this [figure]
-      (./ch0_1_images.md#fig:ch0_1_images-1) illustrates a VOD curve
-      for a packaged watergel explosive and this [figure]
-      (./ch0_1_images.md#fig:ch0_1_images-2) depicts a circular arc.
-    ## [Equations](./ch0_2_equations.md#sec:ch0_2_equations-1) The
-       equations section will discuss how to use equations and
-       reference them properly. See the [internal energy equation]
-       (./ch0_2_equations.md#eq:ch0_2_equations-1) or the
-       [detonation pressure]
-       (./ch0_2_equations.md#eq:ch0_2_equations-2) This string does not
-       contain any links
+#     # Some python code in here
 
+#     ```
 
-    These Match:
-    ![Caption.](image.png){#fig:id}
-    ![Caption.](image.png){#fig:id tag="B.1"}
-    ![This is a sample image representing the VOD curve of a packaged
-     Watergel explosive.]
-     (../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png)
-     {#fig:ch0_1_images-1 width=100%}
-    ![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)
-    ![](../../assets/l2mxAo3IR1dc3Wrgt7Ulqhcm_8nwqFw5UY7pUI3X0oI=.png)
-    ![](../../assets/Y7jjv0ceQH5Ew5O32U2Z_N7ARBfKn2FnHnUoUt_DYbA=.png)
-    ![](../../assets/eOvy-JcdA7pjoDJS4rIgG5RgDfYJ4PY11Owbgy5DHWM=.png)
-    ![](../../assets/XwMrG0o__iLF5nStoSPUuJ81ffxafRBWAVnEcGo10Yo=.png)
-    ```
+#     https://spec.commonmark.org/0.29/#fenced-code-blocks
 
-    """
+#     """
 
-    def _build_regex(self):
-        """
-        Construct the regex that will match the markdown image links in
-        the line.
-        """
+#     def _build_regex(self):
 
-        local_regex = r"(?:[!]\[(?P<caption>.*?)\])\((?P<url>.*?)\)"
+#         # Captures the following:
+#         # ```   bash hello world
+#         # ``` bash hello world
+#         # ~~~    python
+#         # ~~~
+#         # ```
+#         #                         ```````` hello
 
-        self.regex = re.compile(local_regex)
+#         local_regex = r"^\s*(?:`{3,}|~{3,})\s*(?P<infostring>\w*).*$"
 
-    @property
-    def is_full_match(self):
-        """
-        This rule doesn't match the full string, so other rules can be
-        applied to the same line of text.
-        """
+#         self.regex = re.compile(local_regex)
 
-        return False
+#     @property
+#     def is_full_match(self) -> bool:
 
-    def _find_result(self, line):
-        """ """
+#         return True
 
-        result = [
-            MarkdownLinkRuleResult(
-                full=m.group(),
-                text=m.group("caption"),
-                url=m.group("url"),
-            )
-            for m in self.regex.finditer(line)
-        ]
+#     def _find_result(self, line):
+#         """ """
 
-        return result if len(result) > 0 else None
+#         result = [
+#             {"full": m.group(), "infostring": m.group("infostring")}
+#             for m in self.regex.finditer(line)
+#         ]
 
-    def match(self, line):
-        """
-        True is returned if the regex finds a match in the line of text.
-        """
+#         return result if len(result) > 0 else None
 
-        result = self._get_match_result(line)
+#     def match(self, line: str) -> bool:
 
-        return result is not None
+#         result = self._get_match_result(line)
 
-    def extract_data(self, line, **kwargs):
-        """
-        Attempts to extract the information from the line if there is a
-        match. If there is no match, None is returned.
+#         return result is not None
 
-        # Return
+#     def extract_data(self, line: str, **kwargs) -> str:
 
-        A match will return a list of dictionaries that contain
-        the 'caption' and the 'image' URL.
+#         return self._get_match_result(line)
 
-        [{'caption':'image caption', 'image':'URL'}]
 
-        If no match is found, None is returned
+# # Find YAML Block
 
-        """
 
-        return self._get_match_result(line)
+# class YamlBlockClassifier(MatchRule):
+#     """
+#     A YAML metadata block is a valid YAML object, delimited by a line of
+#     three hyphens (---) at the top and a line of three hyphens (---) or
+#     three dots (...) at the bottom.
 
+#     - Contains at least 3 hyphens, - or 3 dots .
+#     - cannot be mixed hyphens and dots
+#     - can be as many leading spaces before the block
+#     - the end of the document closes the block fence automatically
 
-class HTMLImageRule(MatchRule):
-    """
-    This rule can be used to examine lines of text for html image links.
-    Specifically, it is interested in img links that have the src
-    attribute set and can return that.
+#     ---
+#     # Yaml data
+#     ID: xyz-1
+#     version: 12
+#     ...
 
-    The image link is of the form:
+#     """
 
-    - <img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>
-    - <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>
-    - <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>
-    - <img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>
+#     def _build_regex(self):
 
-    <img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/> <- match
-    <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>     <- match
-    <img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>     <- match
-    <img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>                             <- match
-    <img src="hello world"/> <img /> <img src="hello world"/>                                     <- match, no-match, match
-    <img alt="Similar Triangles" style="width: 600px;"/>                                          <- no-match
-    <img/>                                                                                        <- no-match
+#         local_regex = r"^(-{3}|\.{3})\s*$"
 
-    ```
+#         self.regex = re.compile(local_regex)
 
-    """
+#     @property
+#     def is_full_match(self) -> bool:
 
-    def _build_regex(self):
-        """
-        Construct the regex that will match the HTML image links in the
-        line.
-        """
+#         return True
 
-        local_regex = r"<img\s+[^>]*src=\"(?P<src>[^\"]*)\"[^>]*>"
+#     def _find_result(self, line):
+#         """ """
 
-        self.regex = re.compile(local_regex)
+#         result = [
+#             {
+#                 "full": m.group(),
+#             }
+#             for m in self.regex.finditer(line)
+#         ]
 
-    @property
-    def is_full_match(self):
-        """
-        This rule doesn't match the full string, so other rules can be
-        applied to the same line of text.
-        """
+#         return result if len(result) > 0 else None
 
-        return False
+#     def match(self, line: str) -> bool:
 
-    def _find_result(self, line):
-        """ """
+#         result = self._get_match_result(line)
 
-        result = [
-            {
-                "full": m.group(),
-                "src": m.group("src"),
-            }
-            for m in self.regex.finditer(line)
-        ]
+#         return result is not None
 
-        return result if len(result) > 0 else None
+#     def extract_data(self, line: str, **kwargs) -> str:
 
-    def match(self, line):
-        """
-        True is returned if the regex finds a match in the line of text.
-        """
+#         return self._get_match_result(line)
 
-        result = self._get_match_result(line)
 
-        return result is not None
+# class MDFence:
+#     """
+#     A simple object to wrap up tests to see if we are in code blocks or
+#     YAML blocks. We can't be in both at the same time.
 
-    def extract_data(self, line, **kwargs):
-        """
-        Attempts to extract the information from the line if there is a
-        match. If there is no match, None is returned.
+#     # Usage
 
-        {'full':data, 'src':data}
+#     ```
+#     ignore_block = MDFence()
 
-        """
+#     for line in contents:
 
-        return self._get_match_result(line)
+#         if ignore_block.in_block(line):
+#             continue
 
+#         # The line isn't part of a code fence or YAML block. Process it.
 
-class ATXHeaderRule(MatchRule):
-    """
-    Examines the line to see if it matches the definition of an ATX
-    header in markdown.
+#     ```
 
-    # Section One
+#     """
 
-    ## Section Two
+#     def __init__(self):
+#         """ """
+#         self.code_rule = CodeFenceClassifier()
+#         self.yaml_rule = YamlBlockClassifier()
 
-    ### Section Three
+#         self.in_block_type = {
+#             "code": False,
+#             "yaml": False,
+#         }
 
-    #### four
+#     def in_block(self, line):
+#         """ """
 
-    ##### five
+#         if self.in_block_type["code"]:
 
-    ###### six
+#             # Are we at the end?
+#             if self.code_rule.match(line):
+#                 self.in_block_type["code"] = False
 
-    [Definitions](https://spec.commonmark.org/0.24/#atx-headings):
+#             # We are at the last line of the code block, but caller
+#             # would consider this line still in the block. We return
+#             # True, but we have set the flag to false
 
-    - It starts with an octothorpe
-    - It can have up to 6 octothorpes (commonmark)
-    - There can be up to 3 spaces before the start of the ATX Heading
-    - There is at least 1 space after the last octothrope and the text
+#             return True
 
-    # Reference
+#         if self.in_block_type["yaml"]:
 
-    https://spec.commonmark.org/0.24/#atx-headings
+#             # Are we at the end?
+#             if self.yaml_rule.match(line):
+#                 self.in_block_type["yaml"] = False
 
+#             # We are at the last line of the code block, but caller
+#             # would consider this line still in the block. We return
+#             # True, but we have set the flag to false
 
+#             return True
 
-    """
+#         # If we made it this far, we are not in a code block. Check to
+#         # see if we are entering one
 
-    def __init__(self, **kwargs):
-        """
+#         # Have we entered a code block?
+#         if self.code_rule.match(line):
 
-        # Parameters (kwargs)
+#             self.in_block_type["code"] = True
 
-        key: str
-            - The reference key to identify this rule
+#             return True
 
-        count: int
-            - The level of ATX header to match (1 - 6)
+#         # Have we entered a YAML block?
+#         if self.yaml_rule.match(line):
 
-        """
+#             self.in_block_type["yaml"] = True
 
-        self.atx_count = kwargs["count"] if "count" in kwargs else 1
+#             return True
 
-        if self.atx_count < 1 or self.atx_count > 6:
-            raise ValueError(
-                f"Out of range for count = {self.atx_count}. It has to be between 1 and 6."
-            )
-
-        # call super init last because it will call the _build_regex
-        # method
-        super().__init__(**kwargs)
-
-    def _build_regex(self):
-        """
-        Construct the regex that will match the markdown formatted links
-        in the line.
-        """
-
-        # # Hello World   <- match
-        #  # Hello World  <- match
-        #   # Hello World <- match
-        #    # Hello World <- no match
-        #     # Hello World <- no match
-        #      # Hello World <- no match
-
-        local_regex = r"(?:^\s{{0,3}}\#{{{0}}}\s+)(?P<title>.*)$".format(self.atx_count)
-
-        self.regex = re.compile(local_regex)
-
-    @property
-    def is_full_match(self):
-        """
-        This rule doesn't match the full string, so other rules can be
-        applied to the same line of text.
-        """
-
-        return False
-
-    def _find_result(self, line):
-        """ """
-
-        result = self.regex.match(line)
-
-        if result:
-            return result.group("title")
-
-        else:
-            return None
-
-    def match(self, line):
-        """
-        True is returned if the regex finds a match in the line of text.
-        """
-
-        result = self._get_match_result(line)
-
-        return result is not None
-
-    def extract_data(self, line, **kwargs):
-        """
-        Attempts to extract the information from the line if there is a
-        match. If there is no match, None is returned.
-
-        # Return
-
-        A match will return the title text.
-
-        If no match is found, None is returned
-
-        """
-        return self._get_match_result(line)
-
-
-class MarkdownAttributeSyntax(MatchRule):
-    """
-    Looks for any attribute syntax in the markdown line. We are
-    interested in the id portion which should be the first hashtag
-    item: {#index-section-01}. This will return 'index-section-01'
-
-    ```
-    # Header 1 {#header_1 .sidebar}
-
-    ## Header 2 {#header_2 .topbar}
-
-    ![image](./path/to/image.png) {#image_1 .image_link}
-
-    ![image](./path/to/image.png) {.image_link #image_1}
-
-    # Header 1 { #header_1 .sidebar}
-
-    ## Header 2 {        #header_2 .topbar}
-
-    ![image](./path/to/image.png) {xxx     #image_1 .image_link}
-
-    ```
-
-    """
-
-    def _build_regex(self):
-        """
-        Construct the regex that will match the markdown formatted links
-        in the line.
-
-        """
-
-        local_regex = r"(?:\{(?:.*)(?:\#)(?P<id>\S+)(?:.*)\})"  # can change \S for \w
-
-        self.regex = re.compile(local_regex)
-
-    @property
-    def is_full_match(self):
-        """
-        This rule doesn't match the full string, so other rules can be
-        applied to the same line of text.
-        """
-
-        return False
-
-    def _find_result(self, line):
-        """ """
-
-        result = [
-            {"full": m.group(), "id": m.group("id")} for m in self.regex.finditer(line)
-        ]
-
-        return result if len(result) > 0 else None
-
-    def match(self, line):
-        """
-        If the line matches, True is returned.
-        """
-
-        result = self._get_match_result(line)
-
-        return result is not None
-
-    def extract_data(self, line, **kwargs):
-        """
-        Attempts to extract the information from the line if there is a
-        match. If there is no match, None is returned.
-
-        # Return
-
-        A match will return a list of dictionaries that contain
-        the 'text' of the link and the 'link' URL.
-
-        [{'full': 'full match', 'id':'Link description Text'}]
-
-        If no match is found, None is returned
-
-        """
-
-        return self._get_match_result(line)
-
-
-# Find Code Fence
-
-
-class CodeFenceClassifier(MatchRule):
-    """
-    Examines the line to see if it matches the code block ``` or ~~~
-
-
-    - Contains at least 3 backticks, ` or 3 tildes
-    - cannot be mixed backticks and tildes
-    - can be as many leading spaces before the code fence
-    - can have an info string following the code fence
-    - the infostring is the first word after the opening of the code
-      fence
-    - can have as many spaces as is needed after the code fence and
-      before the info string
-    - the end of the document closes the code fence automatically
-
-    ``` ruby
-
-    # Some ruby code here
-
-    ```
-
-    ```python
-
-    # Some python code in here
-
-    ```
-
-    https://spec.commonmark.org/0.29/#fenced-code-blocks
-
-    """
-
-    def _build_regex(self):
-
-        # Captures the following:
-        # ```   bash hello world
-        # ``` bash hello world
-        # ~~~    python
-        # ~~~
-        # ```
-        #                         ```````` hello
-
-        local_regex = r"^\s*(?:`{3,}|~{3,})\s*(?P<infostring>\w*).*$"
-
-        self.regex = re.compile(local_regex)
-
-    @property
-    def is_full_match(self) -> bool:
-
-        return True
-
-    def _find_result(self, line):
-        """ """
-
-        result = [
-            {"full": m.group(), "infostring": m.group("infostring")}
-            for m in self.regex.finditer(line)
-        ]
-
-        return result if len(result) > 0 else None
-
-    def match(self, line: str) -> bool:
-
-        result = self._get_match_result(line)
-
-        return result is not None
-
-    def extract_data(self, line: str, **kwargs) -> str:
-
-        return self._get_match_result(line)
-
-
-# Find YAML Block
-
-
-class YamlBlockClassifier(MatchRule):
-    """
-    A YAML metadata block is a valid YAML object, delimited by a line of
-    three hyphens (---) at the top and a line of three hyphens (---) or
-    three dots (...) at the bottom.
-
-    - Contains at least 3 hyphens, - or 3 dots .
-    - cannot be mixed hyphens and dots
-    - can be as many leading spaces before the block
-    - the end of the document closes the block fence automatically
-
-    ---
-    # Yaml data
-    ID: xyz-1
-    version: 12
-    ...
-
-    """
-
-    def _build_regex(self):
-
-        local_regex = r"^(-{3}|\.{3})\s*$"
-
-        self.regex = re.compile(local_regex)
-
-    @property
-    def is_full_match(self) -> bool:
-
-        return True
-
-    def _find_result(self, line):
-        """ """
-
-        result = [
-            {
-                "full": m.group(),
-            }
-            for m in self.regex.finditer(line)
-        ]
-
-        return result if len(result) > 0 else None
-
-    def match(self, line: str) -> bool:
-
-        result = self._get_match_result(line)
-
-        return result is not None
-
-    def extract_data(self, line: str, **kwargs) -> str:
-
-        return self._get_match_result(line)
-
-
-class MDFence:
-    """
-    A simple object to wrap up tests to see if we are in code blocks or
-    YAML blocks. We can't be in both at the same time.
-
-    # Usage
-
-    ```
-    ignore_block = MDFence()
-
-    for line in contents:
-
-        if ignore_block.in_block(line):
-            continue
-
-        # The line isn't part of a code fence or YAML block. Process it.
-
-    ```
-
-    """
-
-    def __init__(self):
-        """ """
-        self.code_rule = CodeFenceClassifier()
-        self.yaml_rule = YamlBlockClassifier()
-
-        self.in_block_type = {
-            "code": False,
-            "yaml": False,
-        }
-
-    def in_block(self, line):
-        """ """
-
-        if self.in_block_type["code"]:
-
-            # Are we at the end?
-            if self.code_rule.match(line):
-                self.in_block_type["code"] = False
-
-            # We are at the last line of the code block, but caller
-            # would consider this line still in the block. We return
-            # True, but we have set the flag to false
-
-            return True
-
-        if self.in_block_type["yaml"]:
-
-            # Are we at the end?
-            if self.yaml_rule.match(line):
-                self.in_block_type["yaml"] = False
-
-            # We are at the last line of the code block, but caller
-            # would consider this line still in the block. We return
-            # True, but we have set the flag to false
-
-            return True
-
-        # If we made it this far, we are not in a code block. Check to
-        # see if we are entering one
-
-        # Have we entered a code block?
-        if self.code_rule.match(line):
-
-            self.in_block_type["code"] = True
-
-            return True
-
-        # Have we entered a YAML block?
-        if self.yaml_rule.match(line):
-
-            self.in_block_type["yaml"] = True
-
-            return True
-
-        return False
+#         return False
