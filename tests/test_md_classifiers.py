@@ -22,8 +22,8 @@ from md_tools.markdown_classifiers import (
     MarkdownImageTokenLinkRule,
     HTMLImageRuleResult,
     HTMLImageRule,
-    # RelativeURLRuleResult,
-    # RelativeURLRule,
+    RelativeURLRuleResult,
+    RelativeURLRule,
     # AbsoluteURLRuleResult,
     # AbsoluteURLRule,
     # CodeFenceRuleResult,
@@ -408,8 +408,103 @@ def test_html_image_rule_extraction(data):
     assert rule.result == answer
 
 
+# ----
+# Relative URLs
 
 
+data = []
+data.append(("https://github.com/tomduck/pandoc-fignos", False))
+data.append(("http://github.com/tomduck/pandoc-fignos", False))
+data.append(("ftp://github.com/tomduck/pandoc-fignos", False))
+data.append(("ftp://github.com/ tomduck/ pandoc-fignos", False))
+data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", False))
+data.append(("ftps://github.com/tomduck/pandoc-fignos", False))
+
+data.append(('www.google.ca', True))
+data.append(('google.com', True))
+
+
+data.append(("./ch0_1_images.md#fig:ch0_1_images-1", True))
+data.append(("./ch0_1_images.md#fig:ch0_1_images-2", True))
+data.append(("./ch0_2_equations.md#sec:ch0_2_equations-1", True))
+data.append(("./ch0_2_equations.md#eq:ch0_2_equations-1", True))
+data.append(("./ch0_2_equations.md#eq:ch0_2_equations-2", True))
+data.append(("./ch0_2_equations.md", True))
+data.append(("./hello world.md", True))
+data.append(("#eq:ch0_2_equations-2", True))
+data.append(("#eq:ch0_2_equations-2", True))
+data.append(("../assets/circle_arc.png", True))
+data.append(("../../assets/HyperbolaAnatomyLeft.png", True))
+
+@pytest.mark.parametrize("data", data)
+def test_RelativeURLRule_match(data):
+
+    value, result = data
+    rule = RelativeURLRule()
+
+    assert rule(value) == result
+
+
+data = []
+data.append(("https://github.com/tomduck/pandoc-fignos", None))
+data.append(("http://github.com/tomduck/pandoc-fignos", None))
+data.append(("ftp://github.com/tomduck/pandoc-fignos", None))
+data.append(("ftp://github.com/ tomduck/ pandoc-fignos", None))
+data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", None))
+data.append(("ftps://github.com/tomduck/pandoc-fignos", None))
+
+
+
+data.append(
+    (
+        "./ch0_1_images.md#fig:ch0_1_images-1",
+        RelativeURLRuleResult(
+            file='./ch0_1_images.md',
+            section='#fig:ch0_1_images-1',
+        ),
+    )
+)
+
+data.append(
+    (
+        "./ch0_1_images.md#fig:ch0_1_images-2",
+        RelativeURLRuleResult(
+            file='./ch0_1_images.md',
+            section='#fig:ch0_1_images-2',
+        ),
+    )
+)
+
+data.append(
+    (
+        "./ch0_2_equations.md",
+        RelativeURLRuleResult(
+            file='./ch0_2_equations.md',
+            section=None,
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "#eq:ch0_2_equations-2",
+        RelativeURLRuleResult(
+            file='',
+            section='#eq:ch0_2_equations-2',
+        ),
+    )
+)
+
+
+@pytest.mark.parametrize("data", data)
+def test_RelativeURLRule_result(data):
+
+    value, results = data
+    rule = RelativeURLRule()
+
+    rule(value)
+    assert rule.result == results
 
 
 
@@ -472,181 +567,6 @@ def test_html_image_rule_extraction(data):
 #     output = rule.extract_data(value)
 
 #     assert output == results
-
-
-# # ---------------
-# # Test RelativeMarkdownURLRule
-
-# data = []
-# data.append(("https://github.com/tomduck/pandoc-fignos", False))
-# data.append(("http://github.com/tomduck/pandoc-fignos", False))
-# data.append(("ftp://github.com/tomduck/pandoc-fignos", False))
-# data.append(("ftp://github.com/ tomduck/ pandoc-fignos", False))
-# data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", False))
-# data.append(("ftps://github.com/tomduck/pandoc-fignos", False))
-# # data.append(('www.google.ca', False))
-# # data.append(('google.com', False))
-
-
-# data.append(("./ch0_1_images.md#fig:ch0_1_images-1", True))
-# data.append(("./ch0_1_images.md#fig:ch0_1_images-2", True))
-# data.append(("./ch0_2_equations.md#sec:ch0_2_equations-1", True))
-# data.append(("./ch0_2_equations.md#eq:ch0_2_equations-1", True))
-# data.append(("./ch0_2_equations.md#eq:ch0_2_equations-2", True))
-# data.append(("./ch0_2_equations.md", True))
-# data.append(("./hello world.md", True))
-# data.append(("#eq:ch0_2_equations-2", True))
-# data.append(("#eq:ch0_2_equations-2", True))
-# data.append(("../assets/circle_arc.png", True))
-# data.append(("../../assets/HyperbolaAnatomyLeft.png", True))
-
-
-# @pytest.mark.parametrize("data", data)
-# def test_relative_md_url_rule_match(data):
-
-#     value, result = data
-#     rule = RelativeMarkdownURLRule()
-
-#     assert rule.match(value) == result
-
-
-# data = []
-# data.append(("https://github.com/tomduck/pandoc-fignos", None))
-# data.append(("http://github.com/tomduck/pandoc-fignos", None))
-# data.append(("ftp://github.com/tomduck/pandoc-fignos", None))
-# data.append(("ftp://github.com/ tomduck/ pandoc-fignos", None))
-# data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", None))
-# data.append(("ftps://github.com/tomduck/pandoc-fignos", None))
-# # data.append(('www.google.ca', None))
-# # data.append(('google.com', None))
-
-# data.append(
-#     (
-#         "./ch0_1_images.md#fig:ch0_1_images-1",
-#         {
-#             'full': './ch0_1_images.md#fig:ch0_1_images-1',
-#             "md": "./ch0_1_images.md",
-#             "section": "#fig:ch0_1_images-1",
-#             "md_span": (0, 17),
-#             "section_span": (17, 36),
-#         },
-#     )
-# )
-
-# data.append(
-#     (
-#         "./ch0_1_images.md#fig:ch0_1_images-2",
-#         {
-#             'full': './ch0_1_images.md#fig:ch0_1_images-2',
-#             "md": "./ch0_1_images.md",
-#             "section": "#fig:ch0_1_images-2",
-#             "md_span": (0, 17),
-#             "section_span": (17, 36),
-#         },
-#     )
-# )
-
-# data.append(
-#     (
-#         "./ch0_2_equations.md#sec:ch0_2_equations-1",
-#         {
-#             'full': './ch0_2_equations.md#sec:ch0_2_equations-1',
-#             "md": "./ch0_2_equations.md",
-#             "section": "#sec:ch0_2_equations-1",
-#             "md_span": (0, 20),
-#             "section_span": (20, 42),
-#         },
-#     )
-# )
-
-# data.append(
-#     (
-#         "./ch0_2_equations.md#eq:ch0_2_equations-1",
-#         {
-#             'full': './ch0_2_equations.md#eq:ch0_2_equations-1',
-#             "md": "./ch0_2_equations.md",
-#             "section": "#eq:ch0_2_equations-1",
-#             "md_span": (0, 20),
-#             "section_span": (20, 41),
-#         },
-#     )
-# )
-
-# data.append(
-#     (
-#         "./ch0_2_equations.md#eq:ch0_2_equations-2",
-#         {
-#             'full': './ch0_2_equations.md#eq:ch0_2_equations-2',
-#             "md": "./ch0_2_equations.md",
-#             "section": "#eq:ch0_2_equations-2",
-#             "md_span": (0, 20),
-#             "section_span": (20, 41),
-#         },
-#     )
-# )
-
-# data.append(
-#     (
-#         "./ch0_2_equations.md",
-#         {
-#             'full': './ch0_2_equations.md',
-#             "md": "./ch0_2_equations.md",
-#             "section": None,
-#             "md_span": (0, 20),
-#             "section_span": (-1, -1),
-#         },
-#     )
-# )
-
-# data.append(
-#     (
-#         "./hello world.md",
-#         {
-#             'full': './hello world.md',
-#             "md": "./hello world.md",
-#             "section": None,
-#             "md_span": (0, 16),
-#             "section_span": (-1, -1),
-#         },
-#     )
-# )
-
-# data.append(
-#     (
-#         "#eq:ch0_2_equations-2",
-#         {
-#             'full': '#eq:ch0_2_equations-2',
-#             "md": "",
-#             "section": "#eq:ch0_2_equations-2",
-#             "md_span": (0, 0),
-#             "section_span": (0, 21),
-#         },
-#     )
-# )
-# data.append(
-#     (
-#         "#eq:ch0_2_equations-1",
-#         {
-#             'full': '#eq:ch0_2_equations-1',
-#             "md": "",
-#             "section": "#eq:ch0_2_equations-1",
-#             "md_span": (0, 0),
-#             "section_span": (0, 21),
-#         },
-#     )
-# )
-
-
-# @pytest.mark.parametrize("data", data)
-# def test_relative_md_url_rule_extraction(data):
-
-#     value, results = data
-#     rule = RelativeMarkdownURLRule()
-
-#     output = rule.extract_data(value)
-
-#     assert output == results
-
 
 
 
