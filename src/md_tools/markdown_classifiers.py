@@ -33,6 +33,7 @@ from typing import Optional, NamedTuple, Generator
 
 # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
+
 class MarkdownLinkRuleResult(NamedTuple):
     """
     The result from the MarkdownLinkBaseRule.
@@ -49,6 +50,7 @@ class MarkdownLinkRuleResult(NamedTuple):
     relative - a reference to the relative link rule result.
 
     """
+
     full: str
     text: str
     url: str
@@ -80,7 +82,7 @@ class MarkdownLinkBaseRule(ABC):
         """
         return self._result
 
-    def _search_text(self, text:str=None) -> list[MarkdownLinkRuleResult]:
+    def _search_text(self, text: str = None) -> list[MarkdownLinkRuleResult]:
         """
         Search the text for matches contructing a list of
         MarkdownLinkRuleResult objects
@@ -95,7 +97,7 @@ class MarkdownLinkBaseRule(ABC):
             for m in self._regex.finditer(text)
         ]
 
-    def __call__(self, text:str=None) -> bool:
+    def __call__(self, text: str = None) -> bool:
         """
         Does the text contain Markdown links?
 
@@ -106,7 +108,6 @@ class MarkdownLinkBaseRule(ABC):
         self._result = result if len(result) > 0 else None
 
         return self._result is not None
-
 
 
 class MarkdownTokenLinkRule(MarkdownLinkBaseRule):
@@ -164,8 +165,9 @@ class HTMLImageRuleResult(NamedTuple):
 
     """
 
-    full:str
-    src:str
+    full: str
+    src: str
+
 
 class HTMLImageRule(MarkdownLinkBaseRule):
     """
@@ -207,7 +209,7 @@ class HTMLImageRule(MarkdownLinkBaseRule):
         """
         return self._result
 
-    def _search_text(self, text:str=None) -> list[HTMLImageRuleResult]:
+    def _search_text(self, text: str = None) -> list[HTMLImageRuleResult]:
         """
         Search the text for matches constructing a list of
         HTMLImageRuleResult objects
@@ -219,7 +221,6 @@ class HTMLImageRule(MarkdownLinkBaseRule):
             )
             for m in self._regex.finditer(text)
         ]
-
 
 
 class RelativeURLRuleResult(NamedTuple):
@@ -234,11 +235,12 @@ class RelativeURLRuleResult(NamedTuple):
     section = #fig:ch0_1_images-1
 
     """
+
     file: str
     section: Optional[str]
 
 
-class RelativeURLRule():
+class RelativeURLRule:
     """
     This rule will match an relative URL of the
     form:
@@ -298,7 +300,6 @@ class RelativeURLRule():
             r"^(?!.*:\/\/)(?P<file>[^#]*?)(?P<section>#.*)?$",
         )
 
-
     @property
     def result(self) -> Optional[RelativeURLRuleResult]:
         """
@@ -306,7 +307,7 @@ class RelativeURLRule():
         """
         return self._result
 
-    def __call__(self, text:str=None) -> bool:
+    def __call__(self, text: str = None) -> bool:
         """
         Does the text contain Markdown links?
         """
@@ -328,10 +329,11 @@ class AbsoluteURLRuleResult(NamedTuple):
     url = https://github.com/tomduck/pandoc-fignos
 
     """
+
     url: str
 
 
-class AbsoluteURLRule():
+class AbsoluteURLRule:
     """
 
     This rule will match an absolute URL of the form:
@@ -385,7 +387,7 @@ class AbsoluteURLRule():
         """
         return self._result
 
-    def __call__(self, text:str=None) -> bool:
+    def __call__(self, text: str = None) -> bool:
         """
         Does the text contain Markdown links?
         """
@@ -397,13 +399,13 @@ class AbsoluteURLRule():
 
 
 class CodeFenceRuleResult(NamedTuple):
-    """
-    """
-    full:str
-    infostring:Optional[str]
+    """ """
+
+    full: str
+    infostring: Optional[str]
 
 
-class CodeFenceRule():
+class CodeFenceRule:
     """
     Examines the line to see if it matches the code block ``` or ~~~
 
@@ -452,7 +454,7 @@ class CodeFenceRule():
         """
         return self._result
 
-    def __call__(self, text:str=None) -> bool:
+    def __call__(self, text: str = None) -> bool:
         """
         Does the text contain Markdown links?
         """
@@ -463,7 +465,7 @@ class CodeFenceRule():
         return self._result is not None
 
 
-class YamlBlockRule():
+class YamlBlockRule:
     """
     A YAML metadata block is a valid YAML object, delimited by a line of
     three hyphens (---) at the top and a line of three hyphens (---) or
@@ -488,24 +490,12 @@ class YamlBlockRule():
             r"^(-{3}|\.{3})\s*$",
         )
 
-    def __call__(self, text:str=None) -> bool:
+    def __call__(self, text: str = None) -> bool:
         """
         Does the text contain Markdown links?
         """
         m = self._regex.match(text)
         return m is not None
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # # ------------
@@ -726,7 +716,6 @@ class YamlBlockRule():
 #         pass
 
 
-
 # class MarkdownLinkRule(MatchRule):
 #     """
 #     Examines the markdown line for valid markdown links. If the line
@@ -917,7 +906,6 @@ class YamlBlockRule():
 
 #         else:
 #             return None
-
 
 
 # class RelativeMarkdownURLRule(MatchRule):
@@ -1249,7 +1237,6 @@ class YamlBlockRule():
 #     # Reference
 
 #     https://spec.commonmark.org/0.24/#atx-headings
-
 
 
 #     """

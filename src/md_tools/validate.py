@@ -32,6 +32,7 @@ from itertools import chain
 import click
 
 from rich.console import Console
+
 console = Console()
 
 # ------------
@@ -95,12 +96,12 @@ def validate(*args, **kwargs):
 
     ctx = args[0]
 
-    filepath = kwargs['root_path'].expanduser().resolve()
+    filepath = kwargs["root_path"].expanduser().resolve()
 
-    console.print(f'Searching: {filepath}')
+    console.print(f"Searching: {filepath}")
 
     if filepath.is_file():
-        console.print('[red]Root path has to be a directory.[/red]')
+        console.print("[red]Root path has to be a directory.[/red]")
         ctx.abort()
 
     # Store a reference to the Markdown files
@@ -117,23 +118,23 @@ def validate(*args, **kwargs):
 
     asset_files = {}
 
-
     for filename in filepath.rglob("*"):
 
         # console.print(f'[cyan]{filename}[/cyan]')
-        asset_files.setdefault(filename.name, [] ).append(filename)
+        asset_files.setdefault(filename.name, []).append(filename)
 
-        if filename.suffix == '.md':
+        if filename.suffix == ".md":
 
             doc = MarkdownDocument(filename)
             markdown_files.add(doc)
 
-            console.print(f'[green]MARKDOWN: {doc.filename}[/green] -> Lines: {len(doc.contents)}')
+            console.print(
+                f"[green]MARKDOWN: {doc.filename}[/green] -> Lines: {len(doc.contents)}"
+            )
 
             for l in chain(doc.relative_links(), doc.image_links()):
                 line_number, value = l
-                console.print(f'\tLine: {line_number} -> {value}')
-
+                console.print(f"\tLine: {line_number} -> {value}")
 
             console.print()
 
@@ -142,10 +143,6 @@ def validate(*args, **kwargs):
             # console.print(f'\tRelative: {len(doc.relative_links())}')
             # console.print(f'\tImage:    {len(doc.image_links())}')
 
-
-
-
-
     # Convert the dict counts to strings and find the length so we can
     # use the value to format the numbers to line up properly f'{value:
     # {width}.{precision}}' Since this is for formatting and display, I
@@ -153,16 +150,9 @@ def validate(*args, **kwargs):
 
     width = max(len(str(len(markdown_files))), len(str(len(asset_files))))
 
-    console.print('Discovered:')
-    console.print(f'Markdown files: {len(markdown_files):>{width}}')
-    console.print(f'All files:      {len(asset_files):>{width}}')
-
-
-
-
-
-
-
+    console.print("Discovered:")
+    console.print(f"Markdown files: {len(markdown_files):>{width}}")
+    console.print(f"All files:      {len(asset_files):>{width}}")
 
 
 # def multiprocessing_wrapper(root, md):

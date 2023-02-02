@@ -86,9 +86,9 @@ data.append(
         "This is a link [test](https://www.google.ca)",
         [
             MarkdownLinkRuleResult(
-                full= "[test](https://www.google.ca)",
-                text= "test",
-                url= "https://www.google.ca",
+                full="[test](https://www.google.ca)",
+                text="test",
+                url="https://www.google.ca",
                 relative=None,
             ),
         ],
@@ -117,12 +117,11 @@ data.append(
 data.append(
     (
         "This is a link [test](https://www.google.ca) and another [link](./local/file.text)",
-
         [
             MarkdownLinkRuleResult(
-                full= "[test](https://www.google.ca)",
-                text= "test",
-                url= "https://www.google.ca",
+                full="[test](https://www.google.ca)",
+                text="test",
+                url="https://www.google.ca",
                 relative=None,
             ),
             MarkdownLinkRuleResult(
@@ -141,35 +140,34 @@ data.append(
 
 data.append(
     (
-     "Here is a test link: [Equations](http://test.org/ch0_2_equations.html#sec:ch0_2_equations-1).",
-     [
-        MarkdownLinkRuleResult(
-                 full= "[Equations](http://test.org/ch0_2_equations.html#sec:ch0_2_equations-1)",
-                 text= "Equations",
-                 url= "http://test.org/ch0_2_equations.html#sec:ch0_2_equations-1",
-             ),
-    ],
+        "Here is a test link: [Equations](http://test.org/ch0_2_equations.html#sec:ch0_2_equations-1).",
+        [
+            MarkdownLinkRuleResult(
+                full="[Equations](http://test.org/ch0_2_equations.html#sec:ch0_2_equations-1)",
+                text="Equations",
+                url="http://test.org/ch0_2_equations.html#sec:ch0_2_equations-1",
+            ),
+        ],
     )
 )
 
 data.append(
     (
-     "Here is a another one:  [Images](./ch0_1_images.html#sec:ch0_1_images-1)!",
-     [
-        MarkdownLinkRuleResult(
-                 full= "[Images](./ch0_1_images.html#sec:ch0_1_images-1)",
-                 text= "Images",
-                 url= "./ch0_1_images.html#sec:ch0_1_images-1",
-                 relative=RelativeMarkdownURLRuleResult(
-                        full="./ch0_1_images.html#sec:ch0_1_images-1",
-                        md="./ch0_1_images.html",
-                        section="#sec:ch0_1_images-1",
+        "Here is a another one:  [Images](./ch0_1_images.html#sec:ch0_1_images-1)!",
+        [
+            MarkdownLinkRuleResult(
+                full="[Images](./ch0_1_images.html#sec:ch0_1_images-1)",
+                text="Images",
+                url="./ch0_1_images.html#sec:ch0_1_images-1",
+                relative=RelativeMarkdownURLRuleResult(
+                    full="./ch0_1_images.html#sec:ch0_1_images-1",
+                    md="./ch0_1_images.html",
+                    section="#sec:ch0_1_images-1",
                 ),
-        ),
-    ],
+            ),
+        ],
     )
 )
-
 
 
 @pytest.mark.parametrize("data", data)
@@ -184,40 +182,42 @@ def test_extract_markdown_links(data):
         assert c == r
 
 
-
 # # ----------
 # # extract_markdown_image_links
 
 data = []
 
-data.append((
-    "Here is an image link: ![Image Caption](http://www.url.test/image.png)",
-    [
-        MarkdownLinkRuleResult(
-             full= "![Image Caption](http://www.url.test/image.png)",
-             text= "Image Caption",
-             url= "http://www.url.test/image.png",
-         ),
-    ],
-))
+data.append(
+    (
+        "Here is an image link: ![Image Caption](http://www.url.test/image.png)",
+        [
+            MarkdownLinkRuleResult(
+                full="![Image Caption](http://www.url.test/image.png)",
+                text="Image Caption",
+                url="http://www.url.test/image.png",
+            ),
+        ],
+    )
+)
 
 
-data.append((
-    "Here is another image link -> ![](./assets/image.png)",
-    [
-        MarkdownLinkRuleResult(
-                 full= "![](./assets/image.png)",
-                 text= "",
-                 url= "./assets/image.png",
-                 relative=RelativeMarkdownURLRuleResult(
-                        full="./assets/image.png",
-                        md="./assets/image.png",
-                        section=None,
+data.append(
+    (
+        "Here is another image link -> ![](./assets/image.png)",
+        [
+            MarkdownLinkRuleResult(
+                full="![](./assets/image.png)",
+                text="",
+                url="./assets/image.png",
+                relative=RelativeMarkdownURLRuleResult(
+                    full="./assets/image.png",
+                    md="./assets/image.png",
+                    section=None,
                 ),
-        ),
-    ],
-))
-
+            ),
+        ],
+    )
+)
 
 
 @pytest.mark.parametrize("data", data)
@@ -231,6 +231,3 @@ def test_extract_markdown_image_links(data):
 
     for c, r in zip(compare, results):
         assert c == r
-
-
-

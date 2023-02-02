@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#-*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 
 # -----------
 # SPDX-License-Identifier: MIT
@@ -75,12 +75,15 @@ class ATXHeaderResult(NamedTuple):
     text - this is the text of the header line
 
     """
+
     level: int
     text: str
     line_number: Optional[int] = None
 
 
-def find_atx_header(line:str, line_number:Optional[int]=None) -> Optional[ATXHeaderResult]:
+def find_atx_header(
+    line: str, line_number: Optional[int] = None
+) -> Optional[ATXHeaderResult]:
     """
 
     Determine if the line is an ATX header or not. If it is an ATX
@@ -118,7 +121,7 @@ def find_atx_header(line:str, line_number:Optional[int]=None) -> Optional[ATXHea
     return None
 
 
-def find_all_atx_headers(contents:str, **kwargs) -> list[tuple]:
+def find_all_atx_headers(contents: str, **kwargs) -> list[tuple]:
     """
     Given a list of strings representing the contents of a markdown
     file, return a list of section headers.
@@ -160,9 +163,7 @@ def find_all_atx_headers(contents:str, **kwargs) -> list[tuple]:
     return headers
 
 
-
-
-def extract_markdown_links(line:str) -> Optional[list[MarkdownLinkRuleResult]]:
+def extract_markdown_links(line: str) -> Optional[list[MarkdownLinkRuleResult]]:
     """
 
     Given a line, return all of the markdown links. The markdown links
@@ -217,7 +218,6 @@ def extract_markdown_links(line:str) -> Optional[list[MarkdownLinkRuleResult]]:
                 url=r.url,
             )
 
-
             if relative_rule.match(r.url):
 
                 link = MarkdownLinkRuleResult(
@@ -227,12 +227,9 @@ def extract_markdown_links(line:str) -> Optional[list[MarkdownLinkRuleResult]]:
                     relative=relative_rule.extract_data(r.url),
                 )
 
-
             matches.append(link)
 
-
     return matches
-
 
 
 # def extract_relative_markdown_links(line:str, **kwargs) -> Optional[list[MarkdownLinkRuleResult]]:
@@ -318,7 +315,7 @@ def extract_markdown_links(line:str) -> Optional[list[MarkdownLinkRuleResult]]:
 #     return []
 
 
-def extract_markdown_image_links(line:str) -> Optional[list[MarkdownLinkRuleResult]]:
+def extract_markdown_image_links(line: str) -> Optional[list[MarkdownLinkRuleResult]]:
     """
 
     Given a line, return all of the markdown image links that are
@@ -371,8 +368,6 @@ def extract_markdown_image_links(line:str) -> Optional[list[MarkdownLinkRuleResu
             matches.append(link)
 
     return matches
-
-
 
 
 def adjust_markdown_links(line, md_file, **kwargs):
@@ -528,7 +523,8 @@ def clean_atx_header_text(text):
 
     return text
 
-def extract_all_markdown_links(contents:list[str], **kwargs) -> tuple:
+
+def extract_all_markdown_links(contents: list[str], **kwargs) -> tuple:
     """
     Given a list of strings representing the contents of a markdown
     file, return a tuple containing:
@@ -646,7 +642,9 @@ def extract_all_markdown_links(contents:list[str], **kwargs) -> tuple:
     return all_links, absolute_links, relative_links, image_links
 
 
-def markdown_outside_fence(contents:list[str]) -> Generator[tuple[int, str], None, None]:
+def markdown_outside_fence(
+    contents: list[str],
+) -> Generator[tuple[int, str], None, None]:
     """
     A generator which iterates the entire `contents` of the Markdown
     file line-by-line. It yields each line along with its index within
@@ -671,7 +669,7 @@ def markdown_outside_fence(contents:list[str]) -> Generator[tuple[int, str], Non
     """
 
     if contents is None:
-        return # this is effectively raising a StopIteration
+        return  # this is effectively raising a StopIteration
 
     ignore_block = MDFence()
 
@@ -683,12 +681,9 @@ def markdown_outside_fence(contents:list[str]) -> Generator[tuple[int, str], Non
         yield i, line
 
 
-
-
 @dataclass(frozen=True)
-class MarkdownDocument():
-    """
-    """
+class MarkdownDocument:
+    """ """
 
     filename: Path = None
 
@@ -704,9 +699,8 @@ class MarkdownDocument():
         # with self.filename.open("r", encoding="utf-8") as fin:
         #     return fin.readlines()
 
-
     @cached_property
-    def line_look_up(self) -> dict[str,str]:
+    def line_look_up(self) -> dict[str, str]:
         """
         Return a dictionary keyed by a str with the value of the
         matching line numbers.
@@ -727,7 +721,14 @@ class MarkdownDocument():
         return reverse
 
     @cached_property
-    def links(self) -> tuple[list[tuple[int, dict]], list[tuple[int, dict]], list[tuple[int, dict]], list[tuple[int, dict]],]:
+    def links(
+        self,
+    ) -> tuple[
+        list[tuple[int, dict]],
+        list[tuple[int, dict]],
+        list[tuple[int, dict]],
+        list[tuple[int, dict]],
+    ]:
         """
         Extract all Markdown links:
         - all links (absolute and relative)

@@ -24,8 +24,8 @@ from md_tools.markdown_classifiers import (
     HTMLImageRule,
     RelativeURLRuleResult,
     RelativeURLRule,
-    # AbsoluteURLRuleResult,
-    # AbsoluteURLRule,
+    AbsoluteURLRuleResult,
+    AbsoluteURLRule,
     # CodeFenceRuleResult,
     # CodeFenceRule,
     # YamlBlockRule,
@@ -67,6 +67,7 @@ def test_markdowntokenlinkrule_match(data):
     value, result = data
     rule = MarkdownTokenLinkRule()
     assert rule(value) == result
+
 
 data = []
 data.append(("This string does not contain any links", None))
@@ -132,6 +133,7 @@ data.append(
         ],
     )
 )
+
 
 @pytest.mark.parametrize("data", data)
 def test_markdowntokenlinkrule_result(data):
@@ -222,21 +224,24 @@ data.append(
 data.append(("This string does not contain any links", None))
 
 data.append(
-    ( "![Caption.](image.png){#fig:id}", [
-        MarkdownLinkRuleResult(
+    (
+        "![Caption.](image.png){#fig:id}",
+        [
+            MarkdownLinkRuleResult(
                 full="![Caption.](image.png)",
                 text="Caption.",
                 url="image.png",
             ),
-    ])
+        ],
+    )
 )
-
 
 
 data.append(
     (
         '![Caption.](image.png){#fig:id tag="B.1"}',
-        [MarkdownLinkRuleResult(
+        [
+            MarkdownLinkRuleResult(
                 full="![Caption.](image.png)",
                 text="Caption.",
                 url="image.png",
@@ -301,7 +306,6 @@ def test_markdownimagetokenlinkrule_results(data):
     assert rule.result == results
 
 
-
 # --------------
 # Test HTMLImageRule
 
@@ -350,7 +354,7 @@ data.append(
         [
             HTMLImageRuleResult(
                 full='<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
-                src='../../assets/similar_triangles.png',
+                src="../../assets/similar_triangles.png",
             ),
         ],
     )
@@ -361,7 +365,7 @@ data.append(
         [
             HTMLImageRuleResult(
                 full='<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
-                src='../../assets/break_out_angle.png',
+                src="../../assets/break_out_angle.png",
             ),
         ],
     )
@@ -372,7 +376,7 @@ data.append(
         [
             HTMLImageRuleResult(
                 full='<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>',
-                src='azimuth_dump.png',
+                src="azimuth_dump.png",
             ),
         ],
     )
@@ -383,11 +387,11 @@ data.append(
         [
             HTMLImageRuleResult(
                 full='<img src="hello world"/>',
-                src='hello world',
+                src="hello world",
             ),
             HTMLImageRuleResult(
                 full='<img src="hello world2"/>',
-                src='hello world2',
+                src="hello world2",
             ),
         ],
     )
@@ -420,8 +424,8 @@ data.append(("ftp://github.com/ tomduck/ pandoc-fignos", False))
 data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", False))
 data.append(("ftps://github.com/tomduck/pandoc-fignos", False))
 
-data.append(('www.google.ca', True))
-data.append(('google.com', True))
+data.append(("www.google.ca", True))
+data.append(("google.com", True))
 
 
 data.append(("./ch0_1_images.md#fig:ch0_1_images-1", True))
@@ -435,6 +439,7 @@ data.append(("#eq:ch0_2_equations-2", True))
 data.append(("#eq:ch0_2_equations-2", True))
 data.append(("../assets/circle_arc.png", True))
 data.append(("../../assets/HyperbolaAnatomyLeft.png", True))
+
 
 @pytest.mark.parametrize("data", data)
 def test_RelativeURLRule_match(data):
@@ -454,13 +459,12 @@ data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", None))
 data.append(("ftps://github.com/tomduck/pandoc-fignos", None))
 
 
-
 data.append(
     (
         "./ch0_1_images.md#fig:ch0_1_images-1",
         RelativeURLRuleResult(
-            file='./ch0_1_images.md',
-            section='#fig:ch0_1_images-1',
+            file="./ch0_1_images.md",
+            section="#fig:ch0_1_images-1",
         ),
     )
 )
@@ -469,8 +473,8 @@ data.append(
     (
         "./ch0_1_images.md#fig:ch0_1_images-2",
         RelativeURLRuleResult(
-            file='./ch0_1_images.md',
-            section='#fig:ch0_1_images-2',
+            file="./ch0_1_images.md",
+            section="#fig:ch0_1_images-2",
         ),
     )
 )
@@ -479,7 +483,7 @@ data.append(
     (
         "./ch0_2_equations.md",
         RelativeURLRuleResult(
-            file='./ch0_2_equations.md',
+            file="./ch0_2_equations.md",
             section=None,
         ),
     )
@@ -490,8 +494,8 @@ data.append(
     (
         "#eq:ch0_2_equations-2",
         RelativeURLRuleResult(
-            file='',
-            section='#eq:ch0_2_equations-2',
+            file="",
+            section="#eq:ch0_2_equations-2",
         ),
     )
 )
@@ -507,68 +511,68 @@ def test_RelativeURLRule_result(data):
     assert rule.result == results
 
 
+# ----------
+# Test AbsoluteURLRule
 
 
-# # ----------
-# # Test AbsoluteURLRule
+data = []
 
-# data = []
+data.append(("https://github.com/tomduck/pandoc-fignos", True))
+data.append(("http://github.com/tomduck/pandoc-fignos", True))
+data.append(("ftp://github.com/tomduck/pandoc-fignos", True))
 
-# data.append(("https://github.com/tomduck/pandoc-fignos", True))
-# data.append(("http://github.com/tomduck/pandoc-fignos", True))
-# data.append(("ftp://github.com/tomduck/pandoc-fignos", True))
-
-# data.append(("http://github.com/ tomduck/ pandoc-fignos", False))
-# data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", False))
-# data.append(("ftps://github.com/tomduck/pandoc-fignos", False))
-# data.append(("www.google.ca", False))
-# data.append(("google.com", False))
+data.append(("http://github.com/ tomduck/ pandoc-fignos", False))
+data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", False))
+data.append(("ftps://github.com/tomduck/pandoc-fignos", False))
+data.append(("www.google.ca", False))
+data.append(("google.com", False))
 
 
-# @pytest.mark.parametrize("data", data)
-# def test_absolute_url_rule_match(data):
+@pytest.mark.parametrize("data", data)
+def test_absolute_url_rule_match(data):
 
-#     value, result = data
-#     rule = AbsoluteURLRule()
+    value, result = data
+    rule = AbsoluteURLRule()
 
-#     assert rule.match(value) == result
-
-
-# data = []
-# data.append(
-#     (
-#         "https://github.com/tomduck/pandoc-fignos",
-#         "https://github.com/tomduck/pandoc-fignos",
-#     )
-# )
-# data.append(
-#     (
-#         "http://github.com/tomduck/pandoc-fignos",
-#         "http://github.com/tomduck/pandoc-fignos",
-#     )
-# )
-# data.append(
-#     ("ftp://github.com/tomduck/pandoc-fignos", "ftp://github.com/tomduck/pandoc-fignos")
-# )
-
-# data.append(("http://github.com/ tomduck/ pandoc-fignos", None))
-# data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", None))
-# data.append(("ftps://github.com/tomduck/pandoc-fignos", None))
-# data.append(("www.google.ca", None))
-# data.append(("google.com", None))
+    assert rule(value) == result
 
 
-# @pytest.mark.parametrize("data", data)
-# def test_absolute_url_rule_extraction(data):
+data = []
+data.append(
+    (
+        "https://github.com/tomduck/pandoc-fignos",
+        AbsoluteURLRuleResult(url="https://github.com/tomduck/pandoc-fignos"),
+    )
+)
+data.append(
+    (
+        "http://github.com/tomduck/pandoc-fignos",
+        AbsoluteURLRuleResult(url="http://github.com/tomduck/pandoc-fignos"),
+    )
+)
+data.append(
+    (
+        "ftp://github.com/tomduck/pandoc-fignos",
+        AbsoluteURLRuleResult(url="ftp://github.com/tomduck/pandoc-fignos"),
+    )
+)
 
-#     value, results = data
-#     rule = AbsoluteURLRule()
+data.append(("http://github.com/ tomduck/ pandoc-fignos", None))
+data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", None))
+data.append(("ftps://github.com/tomduck/pandoc-fignos", None))
+data.append(("www.google.ca", None))
+data.append(("google.com", None))
 
-#     output = rule.extract_data(value)
 
-#     assert output == results
+@pytest.mark.parametrize("data", data)
+def test_absolute_url_rule_extraction(data):
 
+    value, results = data
+    rule = AbsoluteURLRule()
 
+    rule(value)
+
+    assert rule.result == results
 
 
 # # ----------
@@ -835,9 +839,6 @@ def test_RelativeURLRule_result(data):
 #     assert rule.match(value) == result  # test memoization
 
 #     assert rule.is_full_match == True
-
-
-
 
 
 # # ----------------

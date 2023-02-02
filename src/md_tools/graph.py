@@ -30,6 +30,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from rich.console import Console
+
 console = Console()
 
 # ------------

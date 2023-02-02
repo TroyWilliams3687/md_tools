@@ -30,6 +30,7 @@ from functools import partial
 import click
 
 from rich.console import Console
+
 console = Console()
 
 # ------------

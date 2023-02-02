@@ -42,6 +42,7 @@ from difflib import get_close_matches
 import click
 
 from rich.console import Console
+
 console = Console()
 
 # ------------

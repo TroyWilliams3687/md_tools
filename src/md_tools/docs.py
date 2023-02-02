@@ -27,19 +27,21 @@ from pathlib import Path
 import click
 
 from rich.traceback import install
+
 install(show_locals=False)
 
 from rich.console import Console
+
 console = Console()
 
 # ------------
 # Custom Modules
 
 from .validate import validate
+
 # from .repair import repair
 # from .stats import stats
 # from .graph import graph
-
 
 
 @click.group()
