@@ -28,7 +28,7 @@ from md_tools.markdown_classifiers import (
     AbsoluteURLRule,
     CodeFenceRuleResult,
     CodeFenceRule,
-    # YamlBlockRule,
+    YamlBlockRule,
 )
 
 # -------------
@@ -578,7 +578,6 @@ def test_absolute_url_rule_extraction(data):
 # ----------------
 # Test - CodeFenceClassifier
 
-
 data = []
 
 # ```   bash hello world
@@ -697,6 +696,47 @@ def test_CodeFenceRule_result(data):
 
     rule(value)
     assert rule.result == result
+
+
+
+
+# ----------------
+# Test - YamlBlockClassifier
+
+data = []
+
+# ---   <- Valid Start or End
+# ...   <- Valid End
+
+data.append(("---", True))
+data.append(("...", True))
+
+
+data.append(("--- ", True))
+data.append(("... ", True))
+data.append(("---   ", True))
+data.append(("...  ", True))
+
+data.append(("c++", False))
+data.append(("c--", False))
+data.append(("c==", False))
+data.append(("dee", False))
+data.append(("  --- ", False))
+data.append(("  ... ", False))
+
+
+@pytest.mark.parametrize("data", data)
+def test_YamlBlockRule_result(data):
+
+    value, result = data
+    rule = YamlBlockRule()
+
+    assert rule(value) == result
+
+
+
+
+
 
 
 
@@ -920,46 +960,3 @@ def test_CodeFenceRule_result(data):
 #     assert rule.extract_data(value) == result  # test memoization
 
 #     assert rule.is_full_match == False
-
-
-
-
-
-# # ----------------
-# # Test - YamlBlockClassifier
-
-# data = []
-
-# # ---   <- Valid Start or End
-# # ...   <- Valid End
-
-# data.append(("---", True))
-# data.append(("...", True))
-
-
-# data.append(("--- ", True))
-# data.append(("... ", True))
-# data.append(("---   ", True))
-# data.append(("...  ", True))
-
-# data.append(("c++", False))
-# data.append(("c--", False))
-# data.append(("c==", False))
-# data.append(("dee", False))
-# data.append(("  --- ", False))
-# data.append(("  ... ", False))
-
-
-# @pytest.mark.parametrize("data", data)
-# def test_yamlblockclassifier(data):
-
-#     key = "xx 12345"
-#     value, result = data
-#     rule = YamlBlockClassifier(key=key)
-
-#     assert rule.key == key
-
-#     assert rule.match(value) == result
-#     assert rule.match(value) == result  # test memoization
-
-#     assert rule.is_full_match == True
