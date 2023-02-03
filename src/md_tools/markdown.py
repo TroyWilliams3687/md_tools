@@ -32,135 +32,100 @@ from typing import Generator, Optional, NamedTuple
 # Custom Modules
 
 from .markdown_classifiers import (
-    AbsoluteURLRule,
-    ATXHeaderRule,
-    MarkdownAttributeSyntax,
-    MarkdownImageRule,
-    MarkdownLinkRule,
-    MDFence,
-    RelativeMarkdownURLRule,
     MarkdownLinkRuleResult,
+    MarkdownTokenLinkRule,
+    MarkdownImageTokenLinkRule,
+    HTMLImageRuleResult,
+    HTMLImageRule,
+    RelativeURLRuleResult,
+    RelativeURLRule,
+    AbsoluteURLRuleResult,
+    AbsoluteURLRule,
+    CodeFenceRuleResult,
+    CodeFenceRule,
+    YamlBlockRule,
+    # AbsoluteURLRule,
+    # ATXHeaderRule,
+    # MarkdownAttributeSyntax,
+    # MarkdownImageRule,
+    # MarkdownLinkRule,
+    # MDFence,
+    # RelativeMarkdownURLRule,
+    # MarkdownLinkRuleResult,
     # RelativeMarkdownURLRuleResult,
 )
-
-
 # -------------
 
-# define the rules outside so they can take advantage of memoization
-# (if any headers repeat - probably unlikely)
+class MDFence:
+    """
+    This object keeps track of whether we are iterating through a fence
+    block(code block or YAML block) while iterating through a markdown
+    string.
 
-atx_rules = [
-    ATXHeaderRule(key="Rule 1", count=1),
-    ATXHeaderRule(key="Rule 2", count=2),
-    ATXHeaderRule(key="Rule 3", count=3),
-    ATXHeaderRule(key="Rule 4", count=4),
-    ATXHeaderRule(key="Rule 5", count=5),
-    ATXHeaderRule(key="Rule 6", count=6),
-]
+    # Usage
 
-md_link_rule = MarkdownLinkRule()
-md_attribute_syntax_rule = MarkdownAttributeSyntax()
+    ```
+    ignore_block = MDFence()
+
+    for line in contents:
+
+        if ignore_block.in_block(line):
+            continue
+
+        # The line isn't part of a code fence or YAML block. Process it.
+    ```
+
+    """
+
+    def __init__(self):
+
+        self.fence_types = ("code", "yaml")
+
+        rules = (CodeFenceRule(), YamlBlockRule())
+        self.rules = dict(zip(self.fence_types, rules))
+        self.in_fence = dict(zip(self.fence_types, (False,False)))
+
+    def in_block(self, line):
+
+        # Are we in a block?
+        for bt in self.fence_types:
+
+            if self.in_fence[bt]:
+
+                # Are we at the end?
+                if self.rules[bt](line):
+                    self.in_fence[bt] = False
+
+                # We are at the last line of the fence block, but caller
+                # would consider this line still in the block. We return
+                # True, but we have set the flag to false
+
+                return True
+
+
+        # Have we entered a fence block?
+        for bt in self.fence_types:
+
+            if self.rules[bt](line):
+                self.in_fence[bt] = True
+
+                return True
+
+        # We are not in a fence block
+        return False
+
+
+
+
+
+
+
+
 
 # ----
-# Define some named tuples to handle return types
-# https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
-
-
-class ATXHeaderResult(NamedTuple):
-    """
-    A result object from searching a line of text for an ATX header.
-
-    line - The line number associated with the header result. Defaults to None.
-    level - this is the header level from 1 to 6
-    text - this is the text of the header line
-
-    """
-
-    level: int
-    text: str
-    line_number: Optional[int] = None
-
-
-def find_atx_header(
-    line: str, line_number: Optional[int] = None
-) -> Optional[ATXHeaderResult]:
-    """
-
-    Determine if the line is an ATX header or not. If it is an ATX
-    header it will return a tuple containing the header number (1 to 6)
-    and the text of the header.
-
-    # Parameters
-
-    line - The string to check for an ATX header.
-
-    # Return
-
-    A tuple containing the heading level (1 to 6) and the string of the
-    header (not the ATX header syntax).
-
-    # Note
-
-    We do not consider more than 6 indentation levels to be an ATX
-    header.(https://spec.commonmark.org/0.24/#atx-headings).
-
-    """
-
-    if len(line) == 0:
-        return None
-
-    for rule in atx_rules:
-
-        if rule.match(line):
-            return ATXHeaderResult(
-                level=rule.atx_count,
-                text=rule.extract_data(line),
-                line_number=line_number,
-            )
-
-    return None
-
-
-def find_all_atx_headers(contents: str, **kwargs) -> list[tuple]:
-    """
-    Given a list of strings representing the contents of a markdown
-    file, return a list of section headers.
-
-    # Parameters
-
-    contents:list(str)
-        - The list of strings representing the contents of a markdown
-          file.
-
-    # Parameters (kwargs)
-
-    include_line_numbers:bool
-        - Add the line number in the contents where it found the
-          contents
-
-    # Return
-
-    A list of tuples representing the line number (0 based), header
-    level (1 to 6) and the header text
-
-    (23, 2, "Level 2 header {#AnchorName}    ")
-
-    """
-
-    include_line_numbers = (
-        kwargs["include_line_numbers"] if "include_line_numbers" in kwargs else False
-    )
-
-    headers = []
-
-    for i, line in markdown_outside_fence(contents):
-
-        result = find_atx_header(line, line_number=i)
-
-        if result:
-            headers.append(result)
-
-    return headers
+# ----
+# ----
+# ----
 
 
 def extract_markdown_links(line: str) -> Optional[list[MarkdownLinkRuleResult]]:
@@ -370,158 +335,158 @@ def extract_markdown_image_links(line: str) -> Optional[list[MarkdownLinkRuleRes
     return matches
 
 
-def adjust_markdown_links(line, md_file, **kwargs):
-    """
+# def adjust_markdown_links(line, md_file, **kwargs):
+#     """
 
-    Given the line, find all markdown links that are relative links.
+#     Given the line, find all markdown links that are relative links.
 
-    If a markdown link is detected within the line, we can do a couple
-    of things to it. It will check for intra-document links
-    (relative links) and:
+#     If a markdown link is detected within the line, we can do a couple
+#     of things to it. It will check for intra-document links
+#     (relative links) and:
 
-    1. Remove them, leaving a link to a section anchor
-    2. Rename the .md file to .html leaving the links intact
+#     1. Remove them, leaving a link to a section anchor
+#     2. Rename the .md file to .html leaving the links intact
 
-    A markdown link is of the form: [text](URL)
+#     A markdown link is of the form: [text](URL)
 
-    1. Does the line contain a markdown link?
-    2. Is the URL portion absolute (http://www.iring.ca)?
-    3. Is the URL relative (../file.md#section_title)?
+#     1. Does the line contain a markdown link?
+#     2. Is the URL portion absolute (http://www.iring.ca)?
+#     3. Is the URL relative (../file.md#section_title)?
 
-    - If it is not a markdown link the line is returned unaltered.
-    - If the URL is absolute, the line is returned unaltered.
+#     - If it is not a markdown link the line is returned unaltered.
+#     - If the URL is absolute, the line is returned unaltered.
 
-    Option 1:
+#     Option 1:
 
-    - If the URL is relative, the markdown file is removed
-    - if the URL is relative and doesn't contain a section id an
-      exception is raised.
-        - The user obviously wants to link to the beginning of the
-          document. This should be allowed for the cases where the
-          individual markdown will be compiled to standalone HTML.
-          However, since this is a compressed/merged format this
-          doesn't make sense. We could read the document and figure it
-          out, but we don't want to. It should be explicit if we are
-          compressing/merging the document into one compressed format.
+#     - If the URL is relative, the markdown file is removed
+#     - if the URL is relative and doesn't contain a section id an
+#       exception is raised.
+#         - The user obviously wants to link to the beginning of the
+#           document. This should be allowed for the cases where the
+#           individual markdown will be compiled to standalone HTML.
+#           However, since this is a compressed/merged format this
+#           doesn't make sense. We could read the document and figure it
+#           out, but we don't want to. It should be explicit if we are
+#           compressing/merging the document into one compressed format.
 
-    Option 2:
+#     Option 2:
 
-    - If the URL is relative, the markdown file is renamed to .html.
-
-
-    # Parameters
-
-    line:str
-        - The text string to analyze for markdown links
-
-    md_file:pathlib.Path
-        - The full path to the markdown file that the line is from.
-        - This is used for exceptions so we know the file and line
-          number the exception occurred on.
-
-    # Parameters (kwargs)
-
-    remove_relative_md_link:bool
-        - For each relative markdown link discovered, it will remove the
-          relative path keeping a link to the section anchor
-        - Default - False
-
-    replace_md_extension:bool
-        - For each relative markdown link discovered, it will change the
-          markdown extension to HTML
-        - Default - False
-
-    # Return
-
-    The line object with modifications to any markdown links as
-    required.
-
-    # Note
-
-    The line classifier rules perform memoization and should be
-    instantiated above the loop that calls this method. I don't expect
-    many duplicate lines so this optimization is not necessary. Mostly
-    it is about the match and the extract data
-    """
-
-    remove_relative_md_link = (
-        kwargs["remove_relative_md_link"]
-        if "remove_relative_md_link" in kwargs
-        else False
-    )
-    replace_md_extension = (
-        kwargs["replace_md_extension"] if "replace_md_extension" in kwargs else False
-    )
-
-    if not remove_relative_md_link and not replace_md_extension:
-        console.print(
-            f"remove_relative_md_link = {remove_relative_md_link} and replace_md_extension = {replace_md_extension} - skipping link check (At least one needs to be set)."
-        )
-        return line
-
-    matches = extract_relative_markdown_links(line)
-
-    for relative_link in matches:
-
-        if relative_link["md"]:
-            # we have a relative path to the markdown file
-
-            if remove_relative_md_link:
-
-                # if there is no section name, this is a problem. They will have to specify the section to link too
-                if relative_link["section"] is None:
-                    raise ValueError(
-                        f'ERROR - Missing Section Link - {md_file.name} - "{line}" <- contains a relative link to a markdown file without a section reference "#section_name". A section id needs to be present!'
-                    )
-
-                console.print(f'Removing relative file name from: "{line}"  ')
-                line = line.replace(relative_link["md"], "")
-
-            if replace_md_extension:
-
-                console.print(f'Replacing .md extension with .html: "{line}"  ')
-                line = line.replace(".md", ".html")
-
-    return line
+#     - If the URL is relative, the markdown file is renamed to .html.
 
 
-def clean_atx_header_text(text):
-    """
-    The text of the ATX header can contain links and attributes that
-    should be removed before display the text.
+#     # Parameters
 
-    # Parameters
+#     line:str
+#         - The text string to analyze for markdown links
 
-    text:str
-        - the text associated with the ATX header.
+#     md_file:pathlib.Path
+#         - The full path to the markdown file that the line is from.
+#         - This is used for exceptions so we know the file and line
+#           number the exception occurred on.
 
-    # Return
+#     # Parameters (kwargs)
 
-    The cleaned text
-    """
+#     remove_relative_md_link:bool
+#         - For each relative markdown link discovered, it will remove the
+#           relative path keeping a link to the section anchor
+#         - Default - False
 
-    md_link_rule = MarkdownLinkRule()
-    md_attribute_syntax_rule = MarkdownAttributeSyntax()
+#     replace_md_extension:bool
+#         - For each relative markdown link discovered, it will change the
+#           markdown extension to HTML
+#         - Default - False
 
-    # Remove attributes from the text, if any
-    if md_attribute_syntax_rule.match(text):
+#     # Return
 
-        for r in md_attribute_syntax_rule.extract_data(text):
+#     The line object with modifications to any markdown links as
+#     required.
 
-            text = text.replace(r["full"], "")
+#     # Note
 
-        text = text.strip()
+#     The line classifier rules perform memoization and should be
+#     instantiated above the loop that calls this method. I don't expect
+#     many duplicate lines so this optimization is not necessary. Mostly
+#     it is about the match and the extract data
+#     """
 
-    # remove markdown links, replacing them with text
-    if md_link_rule.match(text):
+#     remove_relative_md_link = (
+#         kwargs["remove_relative_md_link"]
+#         if "remove_relative_md_link" in kwargs
+#         else False
+#     )
+#     replace_md_extension = (
+#         kwargs["replace_md_extension"] if "replace_md_extension" in kwargs else False
+#     )
 
-        for r in md_link_rule.extract_data(text):
+#     if not remove_relative_md_link and not replace_md_extension:
+#         console.print(
+#             f"remove_relative_md_link = {remove_relative_md_link} and replace_md_extension = {replace_md_extension} - skipping link check (At least one needs to be set)."
+#         )
+#         return line
 
-            text = text.replace(r["full"], r["text"])
+#     matches = extract_relative_markdown_links(line)
 
-        text = text.strip()
+#     for relative_link in matches:
 
-    return text
+#         if relative_link["md"]:
+#             # we have a relative path to the markdown file
+
+#             if remove_relative_md_link:
+
+#                 # if there is no section name, this is a problem. They will have to specify the section to link too
+#                 if relative_link["section"] is None:
+#                     raise ValueError(
+#                         f'ERROR - Missing Section Link - {md_file.name} - "{line}" <- contains a relative link to a markdown file without a section reference "#section_name". A section id needs to be present!'
+#                     )
+
+#                 console.print(f'Removing relative file name from: "{line}"  ')
+#                 line = line.replace(relative_link["md"], "")
+
+#             if replace_md_extension:
+
+#                 console.print(f'Replacing .md extension with .html: "{line}"  ')
+#                 line = line.replace(".md", ".html")
+
+#     return line
+
+
+# def clean_atx_header_text(text):
+#     """
+#     The text of the ATX header can contain links and attributes that
+#     should be removed before display the text.
+
+#     # Parameters
+
+#     text:str
+#         - the text associated with the ATX header.
+
+#     # Return
+
+#     The cleaned text
+#     """
+
+#     md_link_rule = MarkdownLinkRule()
+#     md_attribute_syntax_rule = MarkdownAttributeSyntax()
+
+#     # Remove attributes from the text, if any
+#     if md_attribute_syntax_rule.match(text):
+
+#         for r in md_attribute_syntax_rule.extract_data(text):
+
+#             text = text.replace(r["full"], "")
+
+#         text = text.strip()
+
+#     # remove markdown links, replacing them with text
+#     if md_link_rule.match(text):
+
+#         for r in md_link_rule.extract_data(text):
+
+#             text = text.replace(r["full"], r["text"])
+
+#         text = text.strip()
+
+#     return text
 
 
 def extract_all_markdown_links(contents: list[str], **kwargs) -> tuple:
