@@ -26,8 +26,8 @@ from md_tools.markdown_classifiers import (
     RelativeURLRule,
     AbsoluteURLRuleResult,
     AbsoluteURLRule,
-    # CodeFenceRuleResult,
-    # CodeFenceRule,
+    CodeFenceRuleResult,
+    CodeFenceRule,
     # YamlBlockRule,
 )
 
@@ -575,6 +575,131 @@ def test_absolute_url_rule_extraction(data):
     assert rule.result == results
 
 
+# ----------------
+# Test - CodeFenceClassifier
+
+
+data = []
+
+# ```   bash hello world
+# ``` bash hello world
+# ~~~    python
+# ~~~
+# ```
+#                         ```````` hello
+
+data.append(("```   bash hello world", True))
+data.append(("``` bash hello world", True))
+data.append(("~~~", True))
+data.append(("     ~~~   ", True))
+data.append(("```", True))
+data.append(("```    ", True))
+data.append(("```    python", True))
+data.append(("     ```    python", True))
+data.append(("     ``````    python", True))
+data.append(("  ~~~~    python", True))
+data.append(("```````python", True))
+
+data.append(("     ``~`    python", False))
+data.append(("     `~~`    python", False))
+data.append(("     ``~`    python", False))
+
+
+@pytest.mark.parametrize("data", data)
+def test_CodeFenceRule_match(data):
+
+    value, result = data
+    rule = CodeFenceRule()
+
+    assert rule(value) == result
+
+
+data = []
+
+data.append(("```   bash hello world",
+    CodeFenceRuleResult(
+        infostring="bash",
+    )
+))
+
+data.append(("``` bash hello world",
+    CodeFenceRuleResult(
+        infostring="bash",
+    )
+))
+
+data.append(("~~~",
+    CodeFenceRuleResult(
+        infostring="",
+    )
+))
+
+data.append(("     ~~~   ",
+    CodeFenceRuleResult(
+        infostring="",
+    )
+))
+
+data.append(("```",
+    CodeFenceRuleResult(
+        infostring="",
+    )
+))
+
+
+data.append(("```    ",
+    CodeFenceRuleResult(
+        infostring="",
+    )
+))
+
+data.append(("```    python",
+    CodeFenceRuleResult(
+        infostring="python",
+    )
+))
+
+data.append(("     ```    python",
+    CodeFenceRuleResult(
+        infostring="python",
+    )
+))
+
+data.append(("     ``````    python",
+    CodeFenceRuleResult(
+        infostring="python",
+    )
+))
+
+
+data.append(("  ~~~~    python",
+    CodeFenceRuleResult(
+        infostring="python",
+    )
+))
+
+data.append(("```````python",
+    CodeFenceRuleResult(
+        infostring="python",
+    )
+))
+
+data.append(("     ``~`    python", None))
+data.append(("     `~~`    python", None))
+data.append(("     ``~`    python", None))
+
+
+@pytest.mark.parametrize("data", data)
+def test_CodeFenceRule_result(data):
+
+    value, result = data
+    rule = CodeFenceRule()
+
+    rule(value)
+    assert rule.result == result
+
+
+
 # # ----------
 # # ATXHeaderRule - ATX level 1
 
@@ -797,48 +922,7 @@ def test_absolute_url_rule_extraction(data):
 #     assert rule.is_full_match == False
 
 
-# # ----------------
-# # Test - CodeFenceClassifier
 
-# data = []
-
-# # ```   bash hello world
-# # ``` bash hello world
-# # ~~~    python
-# # ~~~
-# # ```
-# #                         ```````` hello
-
-# data.append(("```   bash hello world", True))
-# data.append(("``` bash hello world", True))
-# data.append(("~~~", True))
-# data.append(("     ~~~   ", True))
-# data.append(("```", True))
-# data.append(("```    ", True))
-# data.append(("```    python", True))
-# data.append(("     ```    python", True))
-# data.append(("     ``````    python", True))
-# data.append(("  ~~~~    python", True))
-# data.append(("```````python", True))
-
-# data.append(("     ``~`    python", False))
-# data.append(("     `~~`    python", False))
-# data.append(("     ``~`    python", False))
-
-
-# @pytest.mark.parametrize("data", data)
-# def test_codefenceclassifier(data):
-
-#     key = "xx 12345"
-#     value, result = data
-#     rule = CodeFenceClassifier(key=key)
-
-#     assert rule.key == key
-
-#     assert rule.match(value) == result
-#     assert rule.match(value) == result  # test memoization
-
-#     assert rule.is_full_match == True
 
 
 # # ----------------

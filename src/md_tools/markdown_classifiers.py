@@ -401,7 +401,6 @@ class AbsoluteURLRule:
 class CodeFenceRuleResult(NamedTuple):
     """ """
 
-    full: str
     infostring: Optional[str]
 
 
