@@ -18,10 +18,11 @@ import pytest
 
 from md_tools.markdown_classifiers import (
     MarkdownLinkRuleResult,
-    MarkdownTokenLinkRule,
-    MarkdownImageTokenLinkRule,
-    HTMLImageRuleResult,
-    HTMLImageRule,
+    MarkdownLinkRule,
+    MarkdownImageLinkRuleResult,
+    MarkdownImageLinkRule,
+    HTMLImageLinkRuleResult,
+    HTMLImageLinkRule,
     RelativeURLRuleResult,
     RelativeURLRule,
     AbsoluteURLRuleResult,
@@ -32,7 +33,7 @@ from md_tools.markdown_classifiers import (
 )
 
 # -------------
-# Test - MarkdownTokenLinkRule - matches
+# Test - MarkdownLinkRule - matches
 
 
 data = []
@@ -62,10 +63,10 @@ data.append(("[Hyperbola](../../assets/HyperbolaAnatomyLeft.png)", True))
 
 
 @pytest.mark.parametrize("data", data)
-def test_markdowntokenlinkrule_match(data):
+def test_MarkdownLinkRule_match(data):
 
     value, result = data
-    rule = MarkdownTokenLinkRule()
+    rule = MarkdownLinkRule()
     assert rule(value) == result
 
 
@@ -136,10 +137,10 @@ data.append(
 
 
 @pytest.mark.parametrize("data", data)
-def test_markdowntokenlinkrule_result(data):
+def test_MarkdownLinkRule_result(data):
 
     value, results = data
-    rule = MarkdownTokenLinkRule()
+    rule = MarkdownLinkRule()
 
     rule(value)
     assert rule.result == results
@@ -193,10 +194,10 @@ data.append(
 
 
 @pytest.mark.parametrize("data", data)
-def test_markdownimagetokenlinkrule_match(data):
+def test_MarkdownImageLinkRule_match(data):
 
     value, result = data
-    rule = MarkdownImageTokenLinkRule()
+    rule = MarkdownImageLinkRule()
 
     assert rule(value) == result
 
@@ -227,7 +228,7 @@ data.append(
     (
         "![Caption.](image.png){#fig:id}",
         [
-            MarkdownLinkRuleResult(
+            MarkdownImageLinkRuleResult(
                 full="![Caption.](image.png)",
                 text="Caption.",
                 url="image.png",
@@ -241,7 +242,7 @@ data.append(
     (
         '![Caption.](image.png){#fig:id tag="B.1"}',
         [
-            MarkdownLinkRuleResult(
+            MarkdownImageLinkRuleResult(
                 full="![Caption.](image.png)",
                 text="Caption.",
                 url="image.png",
@@ -255,7 +256,7 @@ data.append(
     (
         "![This is a sample image representing the VOD curve of a packaged Watergel explosive.](../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png){#fig:ch0_1_images-1 width=100%}",
         [
-            MarkdownLinkRuleResult(
+            MarkdownImageLinkRuleResult(
                 full="![This is a sample image representing the VOD curve of a packaged Watergel explosive.](../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png)",
                 text="This is a sample image representing the VOD curve of a packaged Watergel explosive.",
                 url="../assets/1v6C9yek3pHsXSeOlR4glzDMkFqFHizR6VXr79tEOnY=.png",
@@ -268,7 +269,7 @@ data.append(
     (
         "![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)",
         [
-            MarkdownLinkRuleResult(
+            MarkdownImageLinkRuleResult(
                 full="![](../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png)",
                 text="",
                 url="../../assets/E5WnRoSH_Dqrzl8f5_ZJ9AjWc-53BgiBqD_xTqEp6pM=.png",
@@ -281,12 +282,12 @@ data.append(
     (
         "![This Image](image1.png) and another image ![That Image](image2.png)",
         [
-            MarkdownLinkRuleResult(
+            MarkdownImageLinkRuleResult(
                 full="![This Image](image1.png)",
                 text="This Image",
                 url="image1.png",
             ),
-            MarkdownLinkRuleResult(
+            MarkdownImageLinkRuleResult(
                 full="![That Image](image2.png)",
                 text="That Image",
                 url="image2.png",
@@ -297,17 +298,17 @@ data.append(
 
 
 @pytest.mark.parametrize("data", data)
-def test_markdownimagetokenlinkrule_results(data):
+def test_MarkdownImageLinkRule_results(data):
 
     value, results = data
-    rule = MarkdownImageTokenLinkRule()
+    rule = MarkdownImageLinkRule()
 
     rule(value)
     assert rule.result == results
 
 
 # --------------
-# Test HTMLImageRule
+# Test HTMLImageLinkRule
 
 data = []
 
@@ -341,7 +342,7 @@ data.append(("<img/>", False))
 def test_html_image_rule_match(data):
 
     question, answer = data
-    rule = HTMLImageRule()
+    rule = HTMLImageLinkRule()
 
     assert rule(question) == answer
 
@@ -352,7 +353,7 @@ data.append(
     (
         '<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
         [
-            HTMLImageRuleResult(
+            HTMLImageLinkRuleResult(
                 full='<img src="../../assets/similar_triangles.png" alt="Similar Triangles" style="width: 600px;"/>',
                 src="../../assets/similar_triangles.png",
             ),
@@ -363,7 +364,7 @@ data.append(
     (
         '<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
         [
-            HTMLImageRuleResult(
+            HTMLImageLinkRuleResult(
                 full='<img src="../../assets/break_out_angle.png" alt="break out angle" style="width: 400px;"/>',
                 src="../../assets/break_out_angle.png",
             ),
@@ -374,7 +375,7 @@ data.append(
     (
         '<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>',
         [
-            HTMLImageRuleResult(
+            HTMLImageLinkRuleResult(
                 full='<img src="azimuth_dump.png" alt="Drawing" style="width: 200px;"/>',
                 src="azimuth_dump.png",
             ),
@@ -385,11 +386,11 @@ data.append(
     (
         '<img src="hello world"/> <img /> <img src="hello world2"/>',
         [
-            HTMLImageRuleResult(
+            HTMLImageLinkRuleResult(
                 full='<img src="hello world"/>',
                 src="hello world",
             ),
-            HTMLImageRuleResult(
+            HTMLImageLinkRuleResult(
                 full='<img src="hello world2"/>',
                 src="hello world2",
             ),
@@ -405,7 +406,7 @@ data.append(("<img/>", None))
 def test_html_image_rule_extraction(data):
 
     question, answer = data
-    rule = HTMLImageRule()
+    rule = HTMLImageLinkRule()
 
     rule(question)
 

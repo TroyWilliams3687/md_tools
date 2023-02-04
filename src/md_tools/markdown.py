@@ -19,7 +19,7 @@
 
 import re
 
-from collections.abc import Sequence, Generator
+from collections.abc import Sequence, Generator, Callable
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
@@ -34,10 +34,11 @@ from typing import Optional, NamedTuple
 
 from .markdown_classifiers import (
     MarkdownLinkRuleResult,
-    MarkdownTokenLinkRule,
-    MarkdownImageTokenLinkRule,
-    HTMLImageRuleResult,
-    HTMLImageRule,
+    MarkdownLinkRule,
+    MarkdownImageLinkRuleResult,
+    MarkdownImageLinkRule,
+    HTMLImageLinkRuleResult,
+    HTMLImageLinkRule,
     RelativeURLRuleResult,
     RelativeURLRule,
     AbsoluteURLRuleResult,
@@ -45,15 +46,6 @@ from .markdown_classifiers import (
     CodeFenceRuleResult,
     CodeFenceRule,
     YamlBlockRule,
-    # AbsoluteURLRule,
-    # ATXHeaderRule,
-    # MarkdownAttributeSyntax,
-    # MarkdownImageRule,
-    # MarkdownLinkRule,
-    # MDFence,
-    # RelativeMarkdownURLRule,
-    # MarkdownLinkRuleResult,
-    # RelativeMarkdownURLRuleResult,
 )
 
 # -------------
@@ -169,16 +161,35 @@ class LinkLineNumber(NamedTuple):
 
     number - the line number within the sequence of strings
     line - the line itself
+    matches - a sequence of matches within the line
     """
 
     number: int
     line: str
-    matches: Optional[Sequence[MarkdownLinkRuleResult]]
+    matches: Optional[Sequence]
+
+
+def _rule_filter(
+        rule: Callable,
+        lines: Optional[Sequence[str]] = None,
+        start: int = 0,
+    ) -> Generator[LinkLineNumber, None, None]:
+    """
+    A method that applies a rule to filter the results of iterating
+    through the outside_fence method.
+    """
+
+    for valid_line in outside_fence(lines, start=start):
+
+        if rule(valid_line.line):
+
+            yield LinkLineNumber(*valid_line, matches=rule.result)
 
 
 def markdown_links(
-    lines: Optional[Sequence[str]] = None, start: int = 0
-) -> Generator[LinkLineNumber, None, None]:
+        lines: Optional[Sequence[str]] = None,
+        start: int = 0,
+    ) -> Generator[LinkLineNumber, None, None]:
     """
     This method will return lines that contain markdown links.
 
@@ -196,16 +207,58 @@ def markdown_links(
 
     """
 
-    rule = MarkdownTokenLinkRule()
-
-    for valid_line in outside_fence(lines, start=start):
-
-        if rule(valid_line.line):
-
-            yield LinkLineNumber(*valid_line, matches=rule.result)
+    yield from _rule_filter(
+        rule=MarkdownLinkRule(),
+        lines=lines,
+        start=start,
+    )
 
 
-# generator - extract markdown image links
+def markdown_image_links(
+        lines: Optional[Sequence[str]] = None,
+        start: int = 0,
+    ) -> Generator[LinkLineNumber, None, None]:
+    """
+    This method will return lines that contain markdown image links.
+
+    # Parameters
+
+    lines - a sequence of strings
+
+    start - the start of the sequence to use for the line numbers.
+        - Default = 0
+
+    # Return
+
+    A LinkLineNumber object representing the line number and the string
+    that contains markdown links as well as the actual matches.
+
+    """
+
+    yield from _rule_filter(
+        rule=MarkdownImageLinkRule(),
+        lines=lines,
+        start=start,
+    )
+
+
+
+
+
+# all links including image links
+
+# all relative links including relative image links
+
+
+
+
+
+
+
+
+
+
+
 
 
 # ----

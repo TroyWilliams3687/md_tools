@@ -27,7 +27,7 @@ import re
 
 from abc import ABC, abstractmethod, abstractproperty
 from typing import Optional, NamedTuple
-from collections.abc import Generator
+from collections.abc import Sequence
 
 # ------------
 
@@ -38,9 +38,62 @@ from collections.abc import Generator
 # https://docs.python.org/3/library/typing.html#typing.NamedTuple <- The way to define a `typed` namedtuple
 
 
+class TokenRule(ABC):
+    """
+    An abstract base class for rules that can return 0 or more
+    results. It is used as the base class for rules that can match
+    multiple items within a string.
+    """
+
+    def __init__(self, **kwargs):
+
+        self._build_regex()
+        self._result = None
+
+    @abstractmethod
+    def _build_regex(self):
+        """
+        A method to construct the regular expression used by the
+        classifier rule.
+        """
+        pass
+
+    @property
+    def result(self) -> Optional[Sequence]:
+        """
+        The list of MarkdownLinkRuleResult matching the regex
+
+        NOTE: __call__ must be called before results are stored.
+
+        NOTE: if __call__ will overwrite results
+        """
+        return self._result
+
+    @abstractmethod
+    def _search_text(self, text: str = None) -> Sequence:
+        """
+        Search the text for matches returning a Sequence of results.
+        """
+
+        pass
+
+    def __call__(self, text: str = None) -> bool:
+        """
+        Call the object like a function returning a boolean if the
+        tokens are found.
+
+        NOTE: This must be called before calling result.
+        """
+        result = self._search_text(text)
+
+        self._result = result if len(result) > 0 else None
+
+        return self._result is not None
+
+
 class MarkdownLinkRuleResult(NamedTuple):
     """
-    The result from the MarkdownLinkBaseRule.
+    The result from the MarkdownLinkRule.
 
     [test link](https://www.bluebill.net/test1)
 
@@ -60,61 +113,7 @@ class MarkdownLinkRuleResult(NamedTuple):
     url: str
 
 
-class MarkdownLinkBaseRule(ABC):
-    """
-    Match tokens within a text string using regex and return the
-    results, if any, as a MarkdownLinkRuleResult object.
-    """
-
-    def __init__(self, **kwargs):
-
-        self._build_regex()
-        self._result = None
-
-    @abstractmethod
-    def _build_regex(self):
-        """
-        A method to construct the regular expression used by the
-        classifier rule.
-        """
-        pass
-
-    @property
-    def result(self) -> Optional[list[MarkdownLinkRuleResult]]:
-        """
-        The list of MarkdownLinkRuleResult matching the regex
-        """
-        return self._result
-
-    def _search_text(self, text: str = None) -> list[MarkdownLinkRuleResult]:
-        """
-        Search the text for matches contructing a list of
-        MarkdownLinkRuleResult objects
-        """
-
-        return [
-            MarkdownLinkRuleResult(
-                full=m.group(),
-                text=m.group("text"),
-                url=m.group("url"),
-            )
-            for m in self._regex.finditer(text)
-        ]
-
-    def __call__(self, text: str = None) -> bool:
-        """
-        Does the text contain Markdown links?
-
-        If it does, use the result attribute to access the matches.
-        """
-        result = self._search_text(text)
-
-        self._result = result if len(result) > 0 else None
-
-        return self._result is not None
-
-
-class MarkdownTokenLinkRule(MarkdownLinkBaseRule):
+class MarkdownLinkRule(TokenRule):
     """
     Determine if the text contains Markdown formatted hyperlinks.
 
@@ -134,8 +133,41 @@ class MarkdownTokenLinkRule(MarkdownLinkBaseRule):
             r"(?<!!)(?:\[(?P<text>.*?)\]\((?P<url>.*?)\))",
         )
 
+    def _search_text(self, text: str = None) -> Sequence[MarkdownLinkRuleResult]:
 
-class MarkdownImageTokenLinkRule(MarkdownLinkBaseRule):
+
+        return [
+            MarkdownLinkRuleResult(
+                full=m.group(),
+                text=m.group("text"),
+                url=m.group("url"),
+            )
+            for m in self._regex.finditer(text)
+        ]
+
+
+class MarkdownImageLinkRuleResult(NamedTuple):
+    """
+    The result from the MarkdownLinkRule.
+
+    [test link](https://www.bluebill.net/test1)
+
+    https://www.ibm.com/docs/en/cics-ts/5.1?topic=concepts-components-url
+    https://host:port/path#section
+
+    full - Full text match - `[test link](https://www.bluebill.net/test1)`
+    text - Link description Text - `test link`
+    link - URL - `https://www.bluebill.net/test1`
+
+    relative - a reference to the relative link rule result.
+
+    """
+
+    full: str
+    text: str
+    url: str
+
+class MarkdownImageLinkRule(TokenRule):
     """
     Determine if the text contains Markdown formatted image links.
 
@@ -156,7 +188,20 @@ class MarkdownImageTokenLinkRule(MarkdownLinkBaseRule):
         )
 
 
-class HTMLImageRuleResult(NamedTuple):
+    def _search_text(self, text: str = None) -> Sequence[MarkdownImageLinkRuleResult]:
+
+
+        return [
+            MarkdownImageLinkRuleResult(
+                full=m.group(),
+                text=m.group("text"),
+                url=m.group("url"),
+            )
+            for m in self._regex.finditer(text)
+        ]
+
+
+class HTMLImageLinkRuleResult(NamedTuple):
     """
     Given a string:
 
@@ -173,7 +218,7 @@ class HTMLImageRuleResult(NamedTuple):
     src: str
 
 
-class HTMLImageRule(MarkdownLinkBaseRule):
+class HTMLImageLinkRule(TokenRule):
     """
     This rule can be used to examine lines of text for html image links.
     Specifically, it is interested in img links that have the src
@@ -195,10 +240,6 @@ class HTMLImageRule(MarkdownLinkBaseRule):
     <img/>                                                                                        <- no-match
     """
 
-    # def __init__(self, **kwargs):
-
-    #     self._build_regex()
-    #     self._result = None
 
     def _build_regex(self):
 
@@ -206,25 +247,20 @@ class HTMLImageRule(MarkdownLinkBaseRule):
             r"<img\s+[^>]*src=\"(?P<src>[^\"]*)\"[^>]*>",
         )
 
-    @property
-    def result(self) -> Optional[HTMLImageRuleResult]:
-        """
-        The list of links that matched the last selection.
-        """
-        return self._result
 
-    def _search_text(self, text: str = None) -> list[HTMLImageRuleResult]:
+    def _search_text(self, text: str = None) -> Sequence[HTMLImageLinkRuleResult]:
         """
         Search the text for matches constructing a list of
-        HTMLImageRuleResult objects
+        HTMLImageLinkRuleResult objects
         """
         return [
-            HTMLImageRuleResult(
+            HTMLImageLinkRuleResult(
                 full=m.group(),
                 src=m.group("src"),
             )
             for m in self._regex.finditer(text)
         ]
+
 
 
 class RelativeURLRuleResult(NamedTuple):
