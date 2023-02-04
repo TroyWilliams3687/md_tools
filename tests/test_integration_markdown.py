@@ -28,7 +28,6 @@ from md_tools.markdown import (
 )
 
 
-
 # ----
 # Test markdown_links
 
@@ -39,18 +38,18 @@ data = []
 
 data.append(
     (
-        (
-            "3 Test 1 - basic line [here](https://www.bluebill.net)",
-        ),
+        ("3 Test 1 - basic line [here](https://www.bluebill.net)",),
         [
             LinkLineNumber(
                 0,
                 "3 Test 1 - basic line [here](https://www.bluebill.net)",
-                [MarkdownLinkRuleResult(
-                    full="[here](https://www.bluebill.net)",
-                    text="here",
-                    url="https://www.bluebill.net",
-                )],
+                [
+                    MarkdownLinkRuleResult(
+                        full="[here](https://www.bluebill.net)",
+                        text="here",
+                        url="https://www.bluebill.net",
+                    )
+                ],
             ),
         ],
     )
@@ -75,24 +74,29 @@ data.append(
             LinkLineNumber(
                 7,
                 "3 Test 1 - basic line [here](https://www.bluebill.net)",
-                [MarkdownLinkRuleResult(
-                    full="[here](https://www.bluebill.net)",
-                    text="here",
-                    url="https://www.bluebill.net",
-                )],
+                [
+                    MarkdownLinkRuleResult(
+                        full="[here](https://www.bluebill.net)",
+                        text="here",
+                        url="https://www.bluebill.net",
+                    )
+                ],
             ),
             LinkLineNumber(
                 9,
                 "5 Test 1 - [basic](./test.md) line",
-                [MarkdownLinkRuleResult(
+                [
+                    MarkdownLinkRuleResult(
                         full="[basic](./test.md)",
                         text="basic",
                         url="./test.md",
-                    )],
+                    )
+                ],
             ),
         ],
     )
 )
+
 
 @pytest.mark.integration_test
 @pytest.mark.parametrize("data", data)
@@ -102,5 +106,3 @@ def test_markdown_links(data):
 
     for left, right in zip(reference, markdown_links(lines)):
         assert left == right
-
-

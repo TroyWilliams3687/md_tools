@@ -55,7 +55,9 @@ from .markdown_classifiers import (
     # MarkdownLinkRuleResult,
     # RelativeMarkdownURLRuleResult,
 )
+
 # -------------
+
 
 class MDFence:
     """
@@ -85,9 +87,9 @@ class MDFence:
         rules = (CodeFenceRule(), YamlBlockRule())
         self.rules = dict(zip(self.fence_types, rules))
 
-        self.in_fence = dict(zip(self.fence_types, (False,False)))
+        self.in_fence = dict(zip(self.fence_types, (False, False)))
 
-    def __call__(self, line:str=None) -> bool:
+    def __call__(self, line: str = None) -> bool:
 
         # Are we in a block?
         for bt in self.fence_types:
@@ -104,7 +106,6 @@ class MDFence:
 
                 return True
 
-
         # Have we entered a fence block?
         for bt in self.fence_types:
 
@@ -117,7 +118,6 @@ class MDFence:
         return False
 
 
-
 class LineNumber(NamedTuple):
     """
     Represents the individual lines within a sequence of strings.
@@ -126,11 +126,13 @@ class LineNumber(NamedTuple):
     line - the line itself
     """
 
-    number:int
-    line:str
+    number: int
+    line: str
 
 
-def outside_fence(lines:Optional[Sequence[str]]=None, start:int=0) -> Generator[LineNumber, None, None]:
+def outside_fence(
+    lines: Optional[Sequence[str]] = None, start: int = 0
+) -> Generator[LineNumber, None, None]:
     """
     This method will iterate through the lines in the sequence, skipping
     any that are within fence blocks (YAML or code blocks).
@@ -161,7 +163,6 @@ def outside_fence(lines:Optional[Sequence[str]]=None, start:int=0) -> Generator[
         yield LineNumber(i, line)
 
 
-
 class LinkLineNumber(NamedTuple):
     """
     Represents the individual lines within a sequence of strings.
@@ -170,12 +171,14 @@ class LinkLineNumber(NamedTuple):
     line - the line itself
     """
 
-    number:int
-    line:str
-    matches:Optional[Sequence[MarkdownLinkRuleResult]]
+    number: int
+    line: str
+    matches: Optional[Sequence[MarkdownLinkRuleResult]]
 
 
-def markdown_links(lines:Optional[Sequence[str]]=None, start:int=0) -> Generator[LinkLineNumber, None, None]:
+def markdown_links(
+    lines: Optional[Sequence[str]] = None, start: int = 0
+) -> Generator[LinkLineNumber, None, None]:
     """
     This method will return lines that contain markdown links.
 
@@ -202,12 +205,7 @@ def markdown_links(lines:Optional[Sequence[str]]=None, start:int=0) -> Generator
             yield LinkLineNumber(*valid_line, matches=rule.result)
 
 
-
-
 # generator - extract markdown image links
-
-
-
 
 
 # ----

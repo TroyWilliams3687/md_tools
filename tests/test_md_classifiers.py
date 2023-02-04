@@ -615,73 +615,106 @@ def test_CodeFenceRule_match(data):
 
 data = []
 
-data.append(("```   bash hello world",
-    CodeFenceRuleResult(
-        infostring="bash",
+data.append(
+    (
+        "```   bash hello world",
+        CodeFenceRuleResult(
+            infostring="bash",
+        ),
     )
-))
+)
 
-data.append(("``` bash hello world",
-    CodeFenceRuleResult(
-        infostring="bash",
+data.append(
+    (
+        "``` bash hello world",
+        CodeFenceRuleResult(
+            infostring="bash",
+        ),
     )
-))
+)
 
-data.append(("~~~",
-    CodeFenceRuleResult(
-        infostring="",
+data.append(
+    (
+        "~~~",
+        CodeFenceRuleResult(
+            infostring="",
+        ),
     )
-))
+)
 
-data.append(("     ~~~   ",
-    CodeFenceRuleResult(
-        infostring="",
+data.append(
+    (
+        "     ~~~   ",
+        CodeFenceRuleResult(
+            infostring="",
+        ),
     )
-))
+)
 
-data.append(("```",
-    CodeFenceRuleResult(
-        infostring="",
+data.append(
+    (
+        "```",
+        CodeFenceRuleResult(
+            infostring="",
+        ),
     )
-))
+)
 
 
-data.append(("```    ",
-    CodeFenceRuleResult(
-        infostring="",
+data.append(
+    (
+        "```    ",
+        CodeFenceRuleResult(
+            infostring="",
+        ),
     )
-))
+)
 
-data.append(("```    python",
-    CodeFenceRuleResult(
-        infostring="python",
+data.append(
+    (
+        "```    python",
+        CodeFenceRuleResult(
+            infostring="python",
+        ),
     )
-))
+)
 
-data.append(("     ```    python",
-    CodeFenceRuleResult(
-        infostring="python",
+data.append(
+    (
+        "     ```    python",
+        CodeFenceRuleResult(
+            infostring="python",
+        ),
     )
-))
+)
 
-data.append(("     ``````    python",
-    CodeFenceRuleResult(
-        infostring="python",
+data.append(
+    (
+        "     ``````    python",
+        CodeFenceRuleResult(
+            infostring="python",
+        ),
     )
-))
+)
 
 
-data.append(("  ~~~~    python",
-    CodeFenceRuleResult(
-        infostring="python",
+data.append(
+    (
+        "  ~~~~    python",
+        CodeFenceRuleResult(
+            infostring="python",
+        ),
     )
-))
+)
 
-data.append(("```````python",
-    CodeFenceRuleResult(
-        infostring="python",
+data.append(
+    (
+        "```````python",
+        CodeFenceRuleResult(
+            infostring="python",
+        ),
     )
-))
+)
 
 data.append(("     ``~`    python", None))
 data.append(("     `~~`    python", None))
@@ -696,8 +729,6 @@ def test_CodeFenceRule_result(data):
 
     rule(value)
     assert rule.result == result
-
-
 
 
 # ----------------
@@ -732,12 +763,6 @@ def test_YamlBlockRule_result(data):
     rule = YamlBlockRule()
 
     assert rule(value) == result
-
-
-
-
-
-
 
 
 # # ----------
