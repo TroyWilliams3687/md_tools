@@ -354,9 +354,11 @@ class MarkdownDocument:
 
         return reverse
 
-    def line_lookup(self, line) -> Sequence[int]:
+    def line_lookup(self, line) -> Optional[Sequence[int]]:
         """
-        Given a line, see what line numbers correspond to it.
+        Given a str representing a line, what is its line number?
+
+        If the string doesn't existing in the file, None is returned.
         """
 
         if line in self._line_lookup:
