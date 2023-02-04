@@ -26,7 +26,8 @@ This contains the most basic line oriented operations and matching rules.
 import re
 
 from abc import ABC, abstractmethod, abstractproperty
-from typing import Optional, NamedTuple, Generator
+from typing import Optional, NamedTuple
+from collections.abc import Generator
 
 # ------------
 

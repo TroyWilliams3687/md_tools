@@ -19,10 +19,11 @@
 
 import re
 
+from collections.abc import Sequence, Generator
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Generator, Optional, NamedTuple
+from typing import Optional, NamedTuple
 
 
 # ------------
@@ -117,7 +118,51 @@ class MDFence:
 
 
 
-# generator - filter outside fence blocks
+class LineNumber(NamedTuple):
+    """
+    Represents the individual lines within a sequence of strings.
+
+    number - the line number within the sequence of strings
+    line - the line itself
+
+    """
+
+    number:int
+    line:str
+
+
+def outside_fence(lines:Optional[Sequence[str]]=None, start:int=0) -> Generator[LineNumber, None, None]:
+    """
+    This method will iterate through the lines in the sequence, skipping
+    any that are within fence blocks (YAML or code blocks).
+
+    # Parameters
+
+    lines - a sequence of strings
+
+    start - the start of the sequence to use for the line numbers.
+        - Default = 0
+
+    # Return
+
+    A LineNumber object representing the line number and the string that
+    isn't inside a fence block..
+    """
+
+    if lines is None:
+        return  # this is effectively raising a StopIteration
+
+    in_block = MDFence()
+
+    for i, line in enumerate(lines, start=start):
+
+        if in_block(line):
+            continue
+
+        yield LineNumber(i, line)
+
+
+
 # generator - extract markdown links
 # generator - extract markdown image links
 

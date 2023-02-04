@@ -34,6 +34,8 @@ import pytest
 
 from md_tools.markdown import (
     MDFence,
+    LineNumber,
+    outside_fence,
 )
 
 
@@ -194,6 +196,95 @@ def test_MDFence(data):
     for line, result in zip(*data):
 
         assert in_block(line) == result
+
+# ----
+# Test outside_fence
+
+data = []
+
+data.append(
+    (
+        (
+             "1 Test 1 - basic line",
+             "2 Test 1 - basic line",
+             "``` python",
+             "import re",
+             "print('test')",
+             "```",
+             "3 Test 1 - basic line",
+             "4 Test 1 - basic line",
+             "5 Test 1 - basic line",
+         ),
+        (
+             LineNumber(0, "1 Test 1 - basic line"),
+             LineNumber(1, "2 Test 1 - basic line"),
+             LineNumber(6, "3 Test 1 - basic line"),
+             LineNumber(7, "4 Test 1 - basic line"),
+             LineNumber(8, "5 Test 1 - basic line"),
+         ),
+    )
+)
+
+data.append(
+    (
+        (
+             "``` python",
+             "import re",
+             "print('test')",
+             "```",
+             "3 Test 1 - basic line",
+             "4 Test 1 - basic line",
+             "5 Test 1 - basic line",
+         ),
+        (
+             LineNumber(4, "3 Test 1 - basic line"),
+             LineNumber(5, "4 Test 1 - basic line"),
+             LineNumber(6, "5 Test 1 - basic line"),
+         ),
+    )
+)
+
+data.append(
+    (
+        (
+             "1 Test 1 - basic line",
+             "2 Test 1 - basic line",
+             "3 Test 1 - basic line",
+             "4 Test 1 - basic line",
+             "5 Test 1 - basic line",
+         ),
+        (
+             LineNumber(0, "1 Test 1 - basic line"),
+             LineNumber(1, "2 Test 1 - basic line"),
+             LineNumber(2, "3 Test 1 - basic line"),
+             LineNumber(3, "4 Test 1 - basic line"),
+             LineNumber(4, "5 Test 1 - basic line"),
+         ),
+    )
+)
+
+data.append(
+    (
+        (
+             "```",
+             "2 Test 1 - basic line",
+             "3 Test 1 - basic line",
+             "4 Test 1 - basic line",
+             "```",
+         ),
+        (
+             None,
+         ),
+    )
+)
+
+@pytest.mark.parametrize("data", data)
+def test_outside_fence(data):
+
+    lines, results = data
+
+    for left, right in zip(outside_fence(lines), results):
+        assert left == right
 
 
 
