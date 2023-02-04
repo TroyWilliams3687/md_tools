@@ -27,6 +27,7 @@ from md_tools.markdown import (
     LinkLineNumber,
     markdown_links,
     markdown_image_links,
+    markdown_all_links,
 )
 
 
@@ -199,3 +200,100 @@ def test_markdown_image_links(data):
 
     for left, right in zip(reference, markdown_image_links(lines)):
         assert left == right
+
+# ----
+# Testing markdown_all_links
+
+
+data = []
+
+data.append(
+    (
+        (
+            "0. Image: ![here](https://www.bluebill.net/image1.png)",
+            "1. link: [test](../image1.md)",
+        ),
+
+        [
+            LinkLineNumber(
+                0,
+                "0. Image: ![here](https://www.bluebill.net/image1.png)",
+                [
+                    MarkdownImageLinkRuleResult(
+                        full="![here](https://www.bluebill.net/image1.png)",
+                        text="here",
+                        url="https://www.bluebill.net/image1.png",
+                    )
+                ],
+            ),
+            LinkLineNumber(
+                1,
+                "1. link: [test](../image1.md)",
+                [
+                    MarkdownLinkRuleResult(
+                        full="[test](../image1.md)",
+                        text="test",
+                        url="../image1.md",
+                    )
+                ],
+            ),
+        ],
+    )
+)
+
+data.append(
+    (
+        (
+            "0. Image: ![here](https://www.bluebill.net/image1.png) and link: [link 1](../test/file.txt)",
+            "1. link: [test](../image1.md) and ![image](https://test.com/image.png)",
+        ),
+
+        [
+            LinkLineNumber(
+                0,
+                "0. Image: ![here](https://www.bluebill.net/image1.png) and link: [link 1](../test/file.txt)",
+                [
+                    MarkdownLinkRuleResult(
+                        full="[link 1](../test/file.txt)",
+                        text="link 1",
+                        url="../test/file.txt",
+                    ),
+                    MarkdownImageLinkRuleResult(
+                        full="![here](https://www.bluebill.net/image1.png)",
+                        text="here",
+                        url="https://www.bluebill.net/image1.png",
+                    ),
+                ],
+            ),
+            LinkLineNumber(
+                1,
+                "1. link: [test](../image1.md) and ![image](https://test.com/image.png)",
+                [
+                    MarkdownLinkRuleResult(
+                        full="[test](../image1.md)",
+                        text="test",
+                        url="../image1.md",
+                    ),
+                    MarkdownImageLinkRuleResult(
+                        full="![image](https://test.com/image.png)",
+                        text="image",
+                        url="https://test.com/image.png",
+                    ),
+                ],
+            ),
+        ],
+    )
+)
+
+# NOTE: The order of the result list matters in the testing.
+
+@pytest.mark.integration_test
+@pytest.mark.parametrize("data", data)
+def test_markdown_all_links(data):
+
+    lines, reference = data
+
+    for left, right in zip(reference, markdown_all_links(lines)):
+        assert left == right
+
+
