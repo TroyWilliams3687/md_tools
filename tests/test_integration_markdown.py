@@ -28,6 +28,7 @@ from md_tools.markdown import (
     markdown_links,
     markdown_image_links,
     markdown_all_links,
+    markdown_all_relative_links,
 )
 
 
@@ -297,3 +298,66 @@ def test_markdown_all_links(data):
         assert left == right
 
 
+# ----
+# Test markdown_all_relative_links
+
+data = []
+
+data.append(
+    (
+        (
+            "0. Image: ![here](https://www.bluebill.net/image1.png)",
+            "1. link: [test](../image1.md)",
+        ),
+
+        [
+            LinkLineNumber(
+                1,
+                "1. link: [test](../image1.md)",
+                [
+                    MarkdownLinkRuleResult(
+                        full="[test](../image1.md)",
+                        text="test",
+                        url="../image1.md",
+                    )
+                ],
+            ),
+        ],
+    )
+)
+
+
+data.append(
+    (
+        (
+            "0. Image: ![here](https://www.bluebill.net/image1.png) The relative link: [test](../image1.md)",
+        ),
+
+        [
+            LinkLineNumber(
+                0,
+                "0. Image: ![here](https://www.bluebill.net/image1.png) The relative link: [test](../image1.md)",
+                [
+                    MarkdownLinkRuleResult(
+                        full="[test](../image1.md)",
+                        text="test",
+                        url="../image1.md",
+                    )
+                ],
+            ),
+        ],
+    )
+)
+
+
+
+# NOTE: The order of the result list matters in the testing.
+
+@pytest.mark.integration_test
+@pytest.mark.parametrize("data", data)
+def test_markdown_all_relative_links(data):
+
+    lines, reference = data
+
+    for left, right in zip(reference, markdown_all_relative_links(lines)):
+        assert left == right

@@ -277,12 +277,43 @@ def markdown_all_links(
 
 
 
-# all links including image links
+def markdown_all_relative_links(
+        lines: Optional[Sequence[str]] = None,
+        start: int = 0,
+    ) -> Generator[LinkLineNumber, None, None]:
+    """
+    This method will return lines that contain markdown links and image
+    links that are relative.
 
-# all relative links including relative image links
+    # Parameters
 
+    lines - a sequence of strings
 
+    start - the start of the sequence to use for the line numbers.
+        - Default = 0
 
+    # Return
+
+    A LinkLineNumber object representing the line number and the string
+    that contains markdown links as well as the actual matches.
+
+    """
+
+    all_link_rules = (MarkdownLinkRule(), MarkdownImageLinkRule())
+
+    is_relative = RelativeURLRule()
+
+    for line in  _rule_filter(rules=all_link_rules, lines=lines, start=start):
+
+        relative_matches = [match for match in line.matches if is_relative(match.url)]
+
+        if relative_matches:
+
+            yield LinkLineNumber(
+                number=line.number,
+                line=line.line,
+                matches=relative_matches,
+            )
 
 
 
