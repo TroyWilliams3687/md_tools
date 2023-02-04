@@ -124,7 +124,6 @@ class LineNumber(NamedTuple):
 
     number - the line number within the sequence of strings
     line - the line itself
-
     """
 
     number:int
@@ -163,7 +162,48 @@ def outside_fence(lines:Optional[Sequence[str]]=None, start:int=0) -> Generator[
 
 
 
-# generator - extract markdown links
+class LinkLineNumber(NamedTuple):
+    """
+    Represents the individual lines within a sequence of strings.
+
+    number - the line number within the sequence of strings
+    line - the line itself
+    """
+
+    number:int
+    line:str
+    matches:Optional[Sequence[MarkdownLinkRuleResult]]
+
+
+def markdown_links(lines:Optional[Sequence[str]]=None, start:int=0) -> Generator[LinkLineNumber, None, None]:
+    """
+    This method will return lines that contain markdown links.
+
+    # Parameters
+
+    lines - a sequence of strings
+
+    start - the start of the sequence to use for the line numbers.
+        - Default = 0
+
+    # Return
+
+    A LinkLineNumber object representing the line number and the string
+    that contains markdown links as well as the actual matches.
+
+    """
+
+    rule = MarkdownTokenLinkRule()
+
+    for valid_line in outside_fence(lines, start=start):
+
+        if rule(valid_line.line):
+
+            yield LinkLineNumber(*valid_line, matches=rule.result)
+
+
+
+
 # generator - extract markdown image links
 
 
