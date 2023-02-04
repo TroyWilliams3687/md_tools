@@ -57,9 +57,16 @@ data.append(
         True,
     )
 )
-data.append(("This string does not contain any links", False))
-data.append(("[Definition of a circular arc.](../assets/circle_arc.png)", True))
 data.append(("[Hyperbola](../../assets/HyperbolaAnatomyLeft.png)", True))
+data.append(("[Definition of a circular arc.](../assets/circle_arc.png)", True))
+
+data.append(("This string does not contain any links", False))
+data.append(
+    (
+        "This string does not contain any links, only image an image: ![image](./image.png)",
+        False,
+    )
+)
 
 
 @pytest.mark.parametrize("data", data)

@@ -135,7 +135,6 @@ class MarkdownLinkRule(TokenRule):
 
     def _search_text(self, text: str = None) -> Sequence[MarkdownLinkRuleResult]:
 
-
         return [
             MarkdownLinkRuleResult(
                 full=m.group(),
@@ -167,6 +166,7 @@ class MarkdownImageLinkRuleResult(NamedTuple):
     text: str
     url: str
 
+
 class MarkdownImageLinkRule(TokenRule):
     """
     Determine if the text contains Markdown formatted image links.
@@ -187,9 +187,7 @@ class MarkdownImageLinkRule(TokenRule):
             r"(?:[!]\[(?P<text>.*?)\])\((?P<url>.*?)\)",
         )
 
-
     def _search_text(self, text: str = None) -> Sequence[MarkdownImageLinkRuleResult]:
-
 
         return [
             MarkdownImageLinkRuleResult(
@@ -240,13 +238,11 @@ class HTMLImageLinkRule(TokenRule):
     <img/>                                                                                        <- no-match
     """
 
-
     def _build_regex(self):
 
         self._regex = re.compile(
             r"<img\s+[^>]*src=\"(?P<src>[^\"]*)\"[^>]*>",
         )
-
 
     def _search_text(self, text: str = None) -> Sequence[HTMLImageLinkRuleResult]:
         """
@@ -260,7 +256,6 @@ class HTMLImageLinkRule(TokenRule):
             )
             for m in self._regex.finditer(text)
         ]
-
 
 
 class RelativeURLRuleResult(NamedTuple):
