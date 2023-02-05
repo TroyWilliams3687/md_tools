@@ -315,6 +315,10 @@ def markdown_all_relative_links(
             )
 
 
+
+
+
+
 @dataclass(frozen=True)
 class MarkdownDocument:
     """ """
@@ -402,3 +406,77 @@ class MarkdownDocument:
         """
 
         return list(markdown_all_relative_links(self.contents))
+
+
+class ValidationIssue(NamedTuple):
+    """
+    A simple result from the validate_markdown_relative_links that
+    encapsulates the line and the issue.
+    """
+
+    line:LinkLineNumber
+    issue:Path
+
+def validate_markdown_relative_links(
+        doc:MarkdownDocument,
+        assets:dict[str, Path],
+    ) -> dict:
+    """
+    Validate all the relative links within the markdown document by
+    comparing the files against the assets dictionary.
+
+    doc - the markdown document to analyze
+    assets - the dictionary that maps the file name with the discovered locations
+
+    # Return
+
+    A dict with the following keys:
+
+    - line_count - The number of lines in the file
+
+    - missing - A list of lines containing missing entries. That is
+      entries that do not exist in the asset dictionary
+
+    - incorrect - A list of lines containing links that have the name
+      within the asset dictionary but does not match any of the paths
+
+    """
+
+    results:dict = {"line_count":len(doc.contents)}
+
+    for rl in doc.all_relative_links:
+
+        for link in rl.matches:
+            match_path = Path(link.url)
+
+            if match_path.name in assets:
+
+                for asset in assets[match_path.name]:
+                    potential_target = asset
+
+                    if match_path == potential_target:
+                        break # found a match
+
+                else:
+
+                    # now matches - we know the file name exists, but is
+                    # pointing to the wrong one
+
+                    results.setdefault("incorrect", []).append(
+                        ValidationIssue(
+                        line=rl,
+                        issue=match_path,
+                        )
+                    )
+
+            else:
+
+                # the file doesn't exist and there are no assets that match it.
+                results.setdefault("missing", []).append(
+                    ValidationIssue(
+                    line=rl,
+                    issue=match_path,
+                    )
+                )
+
+    return results

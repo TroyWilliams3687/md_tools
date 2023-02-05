@@ -25,6 +25,7 @@ system for issues. The `repair` command can fix some of the issues.
 
 from pathlib import Path
 from itertools import chain
+from datetime import datetime
 
 # ------------
 # 3rd Party - From pip
@@ -38,7 +39,7 @@ console = Console()
 # ------------
 # Custom Modules
 
-from .markdown import MarkdownDocument
+from .markdown import MarkdownDocument, validate_markdown_relative_links
 
 
 # from ..documentos.document_validation import (
@@ -47,6 +48,82 @@ from .markdown import MarkdownDocument
 # )
 
 # -------------
+
+
+def print_doc(doc:MarkdownDocument) -> None:
+    """
+    Given a MarkdownDocument, display all the relative links to stdout
+    along with the line numbers.
+    """
+
+    line_count = len(doc.contents)
+    digits = len(str(line_count))
+
+    for l in doc.all_relative_links:
+
+        if len(l.matches) == 1:
+
+            console.print(f"Line: {l.number:>{digits}} -> [yellow]{l.matches[0].full}[/yellow]")
+
+        else:
+
+            console.print(f"Line: {l.number:{digits}} -> Links:{len(l.matches)}")
+
+            for i, m in enumerate(l.matches):
+                console.print(f"  - {i} Link -> [yellow]{m.full}[/yellow]")
+
+
+
+
+
+
+# def validate_markdown_relative_links(
+#         doc:MarkdownDocument,
+#         assets:dict[str, Path],
+#     ) -> None:
+#     """
+#     Validate the all the relative links within the markdown document by
+#     comparing the files against the assets dictionary.
+
+#     doc - the markdown document to analyze
+#     assets - the dictionary that maps the file name with the discovered locations
+
+#     """
+
+#     line_count = len(doc.contents)
+
+#     # determine the number of digits in the length so we can format the line number nicely
+#     digits = len(str(line_count))
+
+#     issues = []
+
+#     for rl in doc.all_relative_links:
+
+#         # console.print(f"Line: {rl.number:>{digits}} -> [yellow]Links: {len(rl.matches)}[/yellow]")
+
+#         for link in rl.matches:
+#             match_path = Path(link.url)
+
+#             if match_path.name in assets:
+
+#                 for asset in assets[match_path.name]:
+#                     potential_target = asset
+
+#                     if match_path == potential_target:
+#                         break # found a match
+
+#                 else:
+#                     console.print(f"Line: {rl.number:>{digits}} -> [red]INVALID: {match_path}[/red]")
+
+#                     for asset in assets[match_path.name]:
+#                         console.print(f"    [cyan]POTENTIAL MATCH: {asset}[/cyan]")
+
+
+#             else:
+#                 # the file doesn't exist.
+
+#                 console.print(f"Line: {rl.number:>{digits}} -> [red]MISSING: {match_path}[/red]")
+
 
 
 @click.command("validate")
@@ -96,16 +173,16 @@ def validate(*args, **kwargs):
 
     ctx = args[0]
 
-    filepath = kwargs["root_path"].expanduser().resolve()
+    root_path = kwargs["root_path"].expanduser().resolve()
 
-    console.print(f"Searching: {filepath}")
+    console.print(f"Searching: {root_path}")
 
-    if filepath.is_file():
+    if root_path.is_file():
         console.print("[red]Root path has to be a directory.[/red]")
         ctx.abort()
 
     # Store a reference to the Markdown files
-    markdown_files = set()
+    markdown_files:set[MarkdownDocument] = set()
 
     # ----
     # All files are considered assets, including the markdown files. The
@@ -116,238 +193,77 @@ def validate(*args, **kwargs):
     # NOTE: When using the stored paths, they need to be relative to the
     # root folder
 
-    asset_files = {}
+    assets:dict[str, Path] = {}
 
-    for filename in filepath.rglob("*"):
+    search_start_time = datetime.now()
+
+    for filename in root_path.rglob("*"):
 
         # console.print(f'[cyan]{filename}[/cyan]')
-        asset_files.setdefault(filename.name, []).append(filename)
+
+        # add the asset to the correct folder, making sure it is relative to the root folder
+        assets.setdefault(filename.name, []).append(filename.relative_to(root_path))
 
         if filename.suffix == ".md":
 
             doc = MarkdownDocument(filename)
             markdown_files.add(doc)
 
-            console.print(
-                f"[green]MARKDOWN: {doc.filename}[/green] -> Lines: {len(doc.contents)}"
-            )
+            # print_doc(doc)
+            # console.print()
 
-            for l in chain(doc.relative_links(), doc.image_links()):
-                line_number, value = l
-                console.print(f"\tLine: {line_number} -> {value}")
-
-            console.print()
-
-            # console.print(f'\tLinks (Abs + Rel): {len(doc.all_links())}')
-            # console.print(f'\tAbsolute: {len(doc.absolute_links())}')
-            # console.print(f'\tRelative: {len(doc.relative_links())}')
-            # console.print(f'\tImage:    {len(doc.image_links())}')
 
     # Convert the dict counts to strings and find the length so we can
     # use the value to format the numbers to line up properly f'{value:
     # {width}.{precision}}' Since this is for formatting and display, I
     # am not bothering with anything fancier
 
-    width = max(len(str(len(markdown_files))), len(str(len(asset_files))))
+    width = max(len(str(len(markdown_files))), len(str(len(assets))))
 
-    console.print("Discovered:")
-    console.print(f"Markdown files: {len(markdown_files):>{width}}")
-    console.print(f"All files:      {len(asset_files):>{width}}")
+    console.print()
+    console.print(f"Found:    {len(assets):>{width}}")
+    console.print(f"Markdown: {len(markdown_files):>{width}}")
+    console.print()
 
+    # ----
+    # Validate Relative Links
 
-# def multiprocessing_wrapper(root, md):
-#     """
-#     Simple wrapper to make multiprocessing easier.
+    console.print('Validating Relative Markdown Links and Image Links...')
+    console.print()
 
-#     Returns a tuple containing the file name/key and the defects or it
-#     returns None.
+    for doc in markdown_files:
 
-#     NOTE: This methods arguments are defined this way to make use of
-#     functools.partial
+        results = validate_markdown_relative_links(doc, assets)
 
-#     """
+        if "incorrect" in results or "missing" in results:
+            console.print(f"[green]MARKDOWN: {doc.filename}[/green] Links: [yellow]{len(doc.contents)}[/yellow]")
+            console.print()
 
-#     url_messages = validate_urls(md, root=root)
-#     p = md.filename.relative_to(root)
+            if "incorrect" in results:
 
-#     if url_messages:
-#         console.print("")
-#         console.print(f"URL Issues in `{p}`:")
+                for incorrect in results["incorrect"]:
 
-#         for msg in url_messages:
-#             console.print(f"\t{msg}")
+                    console.print(f"Line: {incorrect.line.number}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]")
 
-#     image_messages = validate_images(md, root=root)
+                    for asset in assets[incorrect.issue.name]:
+                        console.print(f"    [cyan]OPTIONS -> {asset} [/cyan]")
 
-#     if image_messages:
-#         console.print("")
-#         console.print(f"Image Issues in `{p}`:")
+                    console.print()
 
-#         for msg in image_messages:
-#             console.print(f"\t{msg}")
+            if "missing" in results:
+                # filename doesn't exist within the asset dictionary.
 
-#     if not md.yaml_block:
-#         console.print("")
-#         console.print(f"Missing YAML Block: `{p}`:")
+                for missing in results["missing"]:
 
-#     elif "UUID" not in md.yaml_block:
-#         console.print("")
-#         console.print(f"Missing UUID in YAML Block: `{p}`:")
+                    console.print(f"Line: {missing.line.number}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]")
 
-#     elif len(md.yaml_block["UUID"]) == 0:
-#         console.print("")
-#         console.print(f"Empty UUID in YAML Block: `{p}`:")
+            console.print()
 
-#     return md
+    search_end_time = datetime.now()
 
-
-# @validate.command("markdown")
-# @click.pass_context
-# def markdown(*args, **kwargs):
-#     """
-#     \b
-#     Validate the Markdown files in the system looking for URL issues.
-
-#     # Usage
-
-#     $ docs validate markdown
-
-#     """
-
-#     # Extract the configuration file from the click context
-#     config = args[0].obj["cfg"]
-
-#     build_start_time = datetime.now()
-
-#     # ------
-#     # Validate Markdown Files
-
-#     # - absolute URL check
-#     # - relative URL check
-#     # - image URL check
-
-#     console.print("Validating Markdown Files...")
-#     console.print("")
-
-#     # -----------
-#     # Multi-Processing
-
-#     # Pre-fill the bits that don't change during iteration so we can use
-#     # the multiprocessing pool effectively
-
-#     fp = partial(multiprocessing_wrapper, config["documents.path"])
-
-#     with Pool(processes=None) as p:
-#         md_files = p.map(fp, config["md_file_contents"])
-
-#     # check for duplicate UUID values and UUID values that are not 36 characters
-#     # UUID = xxxxxxxx-yyyy-zzzz-wwww-mmmmmmmmmmmm -> 36 characters
-
-#     uuid_map = {}
-#     for md in md_files:
-#         if md.yaml_block and "UUID" in md.yaml_block:
-
-#             uuid_map.setdefault(md.yaml_block["UUID"], []).append(md)
-
-#     for uuid, files in uuid_map.items():
-
-#         if len(uuid) != 36:
-#             console.print("")
-
-#             console.print(f"{uuid} - not 36 characters!")
-#             for f in files:
-#                 console.print(f"\t{f.filename}")
-
-#             console.print("")
-
-#         if len(files) > 1:
-
-#             console.print("\nDuplicate UUID:")
-
-#             for f in files:
-#                 console.print(f"{f.filename}")
-
-#             console.print("")
-
-#     # --------------
-#     build_end_time = datetime.now()
-
-#     console.print("")
-#     console.print("-----")
-#     console.print(f"Started  - {build_start_time}")
-#     console.print(f"Finished - {build_end_time}")
-#     console.print(f"Elapsed:   {build_end_time - build_start_time}")
-
-
-# @validate.command("lst")
-# @click.pass_context
-# def lst(*args, **kwargs):
-#     """
-#     \b
-#     Validate the LST files in the system and ensure they all contain
-#     references to valid Markdown or LST files.
-
-#     # Usage
-
-#     $ docs validate lst
-
-#     """
-
-#     # Extract the configuration file from the click context
-#     config = args[0].obj["cfg"]
-
-#     # ------
-#     # Validate LST Files
-
-#     # check for duplicate entries
-
-#     console.print("Validating LST Files...")
-#     console.print("")
-
-#     for lst in config["lst_file_contents"]:
-
-#         key = lst.filename.relative_to(config["documents.path"])
-
-#         console.print(f"{key}")
-
-#         for f in lst.links:
-
-#             if not f.exists():
-#                 console.print(f"{f} does not exist in: {key}")
-
-#     # ------
-#     # Display any files that are not included in any of the lst files
-
-#     lst_files = {str(f) for lst in config["lst_file_contents"] for f in lst.links}
-#     md_files = {str(f.filename) for f in config["md_file_contents"]}
-
-#     console.print("Check - Are all markdown files accounted for in the LST files....")
-
-#     console.print(f"MD Files (lst): {len(lst_files)}")
-#     console.print(f"MD files (file system): {len(md_files)}")
-
-#     # Subtracting the sets will give use the difference, that is what
-#     # files are not listed in the LST file. We have to check both was
-#     # because of the way the set differences work. a - b will list all
-#     # the elements in a that are not in b.
-
-#     if lst_files >= md_files:
-
-#         delta = lst_files - md_files
-#         msg = "Files that are in the LST but not in the set of MD files:"
-
-#     else:
-
-#         delta = md_files - lst_files
-#         msg = "Files that are in the FILE SYSTEM but not in the set of LST files:"
-
-#     if delta:
-
-#         console.print("")
-#         console.print(msg)
-
-#         for d in delta:
-#             console.print(f"\t{d}")
-
-#         console.print("")
-#         console.print(f"Count: {len(delta)}")
+    # console.print()
+    # console.print('----')
+    console.print(f"[cyan]Started:   {search_start_time}[/cyan]")
+    console.print(f"[cyan]Finished:  {search_end_time}[/cyan]")
+    console.print(f"[cyan]Elapsed:   {search_end_time - search_start_time}[/cyan]")
+    console.print()

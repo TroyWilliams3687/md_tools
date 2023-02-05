@@ -18,6 +18,8 @@ Integration testing
 
 import pytest
 
+from pathlib import Path
+
 from md_tools.markdown_classifiers import (
     MarkdownLinkRuleResult,
     MarkdownImageLinkRuleResult,
@@ -30,6 +32,8 @@ from md_tools.markdown import (
     markdown_all_links,
     markdown_all_relative_links,
     MarkdownDocument,
+    validate_markdown_relative_links,
+    ValidationIssue,
 )
 
 
@@ -651,3 +655,157 @@ def test_MarkdownDocument_all_relative_links(create_markdown_file, data):
     md = MarkdownDocument(create_markdown_file)
 
     assert md.all_relative_links == links
+
+
+# ---
+# Test validate_markdown_relative_links
+
+content = []
+assets = []
+results = []
+
+content.append(
+    (
+        "[test](test.txt)",
+        "![image](image.png)",
+        "[test](test.txt) and [test2](https://www.google.com)",
+    )
+)
+
+assets.append(
+    {
+    "test.txt":[Path("test.txt")],
+    "image.png":[Path("image.png")],
+    }
+)
+
+# Nothing missing or incorrect
+results.append(
+    {
+        "line_count":3,
+        # "incorrect":[],
+        # "missing":[],
+    }
+)
+
+
+content.append(
+    (
+        "[test](test.txt)",
+        "![image](image.png)",
+        "[test](test.txt) and [test2](https://www.google.com)",
+    )
+)
+
+assets.append(
+    {
+    "image.png":[Path("image.png")],
+    }
+)
+
+# missing files i.e. the name didn't appear in the assets
+results.append(
+    {
+        "line_count":3,
+        # "incorrect":[],
+        "missing":[
+            ValidationIssue(
+                line=LinkLineNumber(
+                    number=0,
+                    line='[test](test.txt)',
+                    matches=[MarkdownLinkRuleResult(
+                        full='[test](test.txt)',
+                        text='test',
+                        url='test.txt')]),
+                issue=Path('test.txt')),
+            ValidationIssue(
+                line=LinkLineNumber(
+                    number=2,
+                    line='[test](test.txt) and [test2](https://www.google.com)',
+                    matches=[MarkdownLinkRuleResult(
+                        full='[test](test.txt)',
+                        text='test',
+                        url='test.txt')]),
+                issue=Path('test.txt'))
+            ],
+    }
+)
+
+
+content.append(
+    (
+        "[test](test.txt)",
+        "![image](image.png)",
+        "[test](test.txt) and [test2](https://www.google.com)",
+    )
+)
+
+assets.append(
+    {
+    "test.txt":[Path("src/test.txt")],
+    "image.png":[Path("src/image.png")],
+    }
+)
+
+# the files appear in assets, but not in the correct spot
+results.append(
+    {
+        'line_count': 3,
+        'incorrect': [
+            ValidationIssue(
+                line=LinkLineNumber(
+                    number=0,
+                    line='[test](test.txt)',
+                    matches=[
+                        MarkdownLinkRuleResult(
+                            full='[test](test.txt)',
+                            text='test',
+                            url='test.txt'
+                        )
+                    ]),
+                issue=Path('test.txt')),
+            ValidationIssue(
+                line=LinkLineNumber(
+                    number=1,
+                    line='![image](image.png)',
+                    matches=[
+                        MarkdownImageLinkRuleResult(
+                            full='![image](image.png)',
+                            text='image',
+                            url='image.png')
+                    ]),
+                issue=Path('image.png')),
+            ValidationIssue(
+                line=LinkLineNumber(
+                    number=2,
+                    line='[test](test.txt) and [test2](https://www.google.com)',
+                    matches=[
+                        MarkdownLinkRuleResult(
+                            full='[test](test.txt)',
+                            text='test', url='test.txt')]),
+                issue=Path('test.txt'))
+            ]
+    }
+)
+
+
+data = zip(content, assets, results)
+
+
+@pytest.mark.parametrize("data", data)
+def test_validate_markdown_relative_links(tmp_path, data):
+
+    content, assets, valid_results = data
+
+    # Dump the contents to a markdown file so we can test loading
+    d = tmp_path / "md_validation"
+    d.mkdir()
+    p = d / "test.md"
+    p.write_text("\n".join(content))
+
+    # load the file
+    md = MarkdownDocument(p)
+
+    results = validate_markdown_relative_links(md, assets)
+
+    assert valid_results == results
