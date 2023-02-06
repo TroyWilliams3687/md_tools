@@ -74,58 +74,6 @@ def print_doc(doc:MarkdownDocument) -> None:
 
 
 
-
-
-
-# def validate_markdown_relative_links(
-#         doc:MarkdownDocument,
-#         assets:dict[str, Path],
-#     ) -> None:
-#     """
-#     Validate the all the relative links within the markdown document by
-#     comparing the files against the assets dictionary.
-
-#     doc - the markdown document to analyze
-#     assets - the dictionary that maps the file name with the discovered locations
-
-#     """
-
-#     line_count = len(doc.contents)
-
-#     # determine the number of digits in the length so we can format the line number nicely
-#     digits = len(str(line_count))
-
-#     issues = []
-
-#     for rl in doc.all_relative_links:
-
-#         # console.print(f"Line: {rl.number:>{digits}} -> [yellow]Links: {len(rl.matches)}[/yellow]")
-
-#         for link in rl.matches:
-#             match_path = Path(link.url)
-
-#             if match_path.name in assets:
-
-#                 for asset in assets[match_path.name]:
-#                     potential_target = asset
-
-#                     if match_path == potential_target:
-#                         break # found a match
-
-#                 else:
-#                     console.print(f"Line: {rl.number:>{digits}} -> [red]INVALID: {match_path}[/red]")
-
-#                     for asset in assets[match_path.name]:
-#                         console.print(f"    [cyan]POTENTIAL MATCH: {asset}[/cyan]")
-
-
-#             else:
-#                 # the file doesn't exist.
-
-#                 console.print(f"Line: {rl.number:>{digits}} -> [red]MISSING: {match_path}[/red]")
-
-
-
 @click.command("validate")
 @click.pass_context
 @click.argument(
@@ -231,6 +179,8 @@ def validate(*args, **kwargs):
     console.print('Validating Relative Markdown Links and Image Links...')
     console.print()
 
+    issue_count = 0
+
     for doc in markdown_files:
 
         results = validate_markdown_relative_links(doc, assets)
@@ -240,6 +190,10 @@ def validate(*args, **kwargs):
             console.print()
 
             if "incorrect" in results:
+                # The filename exists as an asset, just the paths don't
+                # line up
+
+                issue_count += len(results["incorrect"])
 
                 for incorrect in results["incorrect"]:
 
@@ -253,11 +207,17 @@ def validate(*args, **kwargs):
             if "missing" in results:
                 # filename doesn't exist within the asset dictionary.
 
+                issue_count += len(results["missing"])
+
                 for missing in results["missing"]:
 
                     console.print(f"Line: {missing.line.number}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]")
 
             console.print()
+
+    if issue_count == 0:
+        console.print(":+1: [green]No Issues Detected![/green]")
+        console.print()
 
     search_end_time = datetime.now()
 
