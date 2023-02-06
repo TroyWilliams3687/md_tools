@@ -332,7 +332,7 @@ class MarkdownDocument:
         Using indexing you can drill down by line numbers.
         """
 
-        return self.filename.read_text().splitlines()
+        return self.filename.read_text(encoding="utf-8").splitlines()
 
         # with self.filename.open("r", encoding="utf-8") as fin:
         #     return fin.readlines()
