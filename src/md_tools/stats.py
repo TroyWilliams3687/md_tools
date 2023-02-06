@@ -20,9 +20,11 @@ and the AST representation.
 # ------------
 # System Modules - Included with Python
 
+import re
+
 from datetime import datetime
-from multiprocessing import Pool
-from functools import partial
+# from multiprocessing import Pool
+# from functools import partial
 
 # ------------
 # 3rd Party - From pip
@@ -39,6 +41,11 @@ console = Console()
 # from ..documentos.common import run_cmd
 
 # -------------
+
+# import re
+# line = " I am having a very nice day."
+# count = len(re.findall(r'\w+', line))
+# print (count)
 
 
 # This is the pandoc filter will will write out to a temporary location

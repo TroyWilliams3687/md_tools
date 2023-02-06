@@ -19,9 +19,7 @@ system for issues. The `repair` command can fix some of the issues.
 # ------------
 # System Modules - Included with Python
 
-# from datetime import datetime
-# from multiprocessing import Pool
-# from functools import partial
+import re
 
 from pathlib import Path
 from itertools import chain
@@ -40,12 +38,6 @@ console = Console()
 # Custom Modules
 
 from .markdown import MarkdownDocument, validate_markdown_relative_links
-
-
-# from ..documentos.document_validation import (
-#     validate_urls,
-#     validate_images,
-# )
 
 # -------------
 
@@ -72,6 +64,13 @@ def print_doc(doc:MarkdownDocument) -> None:
             for i, m in enumerate(l.matches):
                 console.print(f"  - {i} Link -> [yellow]{m.full}[/yellow]")
 
+def document_word_count(doc:MarkdownDocument) -> int:
+    """
+    Given a document provide an estimate of the word count.
+    """
+
+    searcher = re.compile(r'\w+')
+    return sum([len(searcher.findall(line)) for line in doc.contents])
 
 
 @click.command("validate")
@@ -97,27 +96,6 @@ def validate(*args, **kwargs):
 
     """
     # config = args[0].obj["cfg"]
-
-    # ------------
-    # Build code that uses pathlib.path.rglob to recursively find all markdown files
-
-    # inspect each file, line-by-line validating:
-    # Image Check - Internal
-    #   - Does the file exist at the URL?
-    #   - Relative Image Check
-    #   - Absolute Image Check
-    # File Check
-    #   - Does the local file exist?
-    #   - Relative
-    #   - Absolute
-    # URL Check
-    #   - Is the URL Valid and does it point to a valid Resource?
-    #   - this can use aiohttp, a queue and asyncio to speed this up
-
-    # should build a set of rules that can be run against each line of the markdown file
-    # should be able to deal gracefully with code blocks or other blocks, i.e. YAML blocks
-
-    # perhaps use my markdown object - it might be easier. The key is to write the file line number
 
     ctx = args[0]
 
@@ -160,19 +138,6 @@ def validate(*args, **kwargs):
             # print_doc(doc)
             # console.print()
 
-
-    # Convert the dict counts to strings and find the length so we can
-    # use the value to format the numbers to line up properly f'{value:
-    # {width}.{precision}}' Since this is for formatting and display, I
-    # am not bothering with anything fancier
-
-    width = max(len(str(len(markdown_files))), len(str(len(assets))))
-
-    console.print()
-    console.print(f"Found:    {len(assets):>{width}}")
-    console.print(f"Markdown: {len(markdown_files):>{width}}")
-    console.print()
-
     # ----
     # Validate Relative Links
 
@@ -180,8 +145,11 @@ def validate(*args, **kwargs):
     console.print()
 
     issue_count = 0
+    word_counts = []
 
     for doc in markdown_files:
+
+        word_counts.append(document_word_count(doc))
 
         results = validate_markdown_relative_links(doc, assets)
 
@@ -219,11 +187,31 @@ def validate(*args, **kwargs):
         console.print(":+1: [green]No Issues Detected![/green]")
         console.print()
 
+    # stop the clock
     search_end_time = datetime.now()
 
-    # console.print()
-    # console.print('----')
-    console.print(f"[cyan]Started:   {search_start_time}[/cyan]")
-    console.print(f"[cyan]Finished:  {search_end_time}[/cyan]")
-    console.print(f"[cyan]Elapsed:   {search_end_time - search_start_time}[/cyan]")
+    # estimate the totals words
+
+    total_words = sum(word_counts)
+    words_per_page = total_words / 500
+
+    # 500 words is an average, see:
+    # https://howardcc.libanswers.com/faq/69833
+
+    # Convert the dict counts to strings and find the length so we can
+    # use the value to format the numbers to line up properly f'{value:
+    # {width}.{precision}}' Since this is for formatting and display, I
+    # am not bothering with anything fancier
+
+    width = max(len(str(len(markdown_files))), len(str(len(assets))), len(str(total_words)))
+
+    console.print(f"[cyan]Documents Found:    {len(assets):>{width}}[/cyan]")
+    console.print(f"[cyan]Markdown Documents: {len(markdown_files):>{width}}[/cyan]")
+    console.print(f"[cyan]Estimated Words:   {total_words:>{width},}[/cyan]")
+
+    console.print(f"[cyan]Estimated Pages:    {words_per_page:>{width},.1f}[/cyan]")
+    console.print(':clock1:')
+    console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
+    console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
+    console.print(f"[cyan]Elapsed:              {search_end_time - search_start_time}[/cyan]")
     console.print()
