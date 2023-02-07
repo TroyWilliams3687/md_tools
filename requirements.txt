@@ -9,6 +9,7 @@ click
 rich
 networkx
 matplotlib
+scipy
 
 # --------------
 # Additional Interesting Modules

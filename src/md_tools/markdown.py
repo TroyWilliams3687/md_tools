@@ -219,6 +219,45 @@ def markdown_links(
     )
 
 
+def markdown_relative_links(
+    lines: Optional[Sequence[str]] = None,
+    start: int = 0,
+) -> Generator[LinkLineNumber, None, None]:
+    """
+    This method will return lines that contain markdown links that are
+    relative.
+
+    # Parameters
+
+    lines - a sequence of strings
+
+    start - the start of the sequence to use for the line numbers.
+        - Default = 0
+
+    # Return
+
+    A LinkLineNumber object representing the line number and the string
+    that contains markdown links as well as the actual matches.
+
+    """
+
+    all_link_rules = (MarkdownLinkRule(), )
+
+    is_relative = RelativeURLRule()
+
+    for line in _rule_filter(rules=all_link_rules, lines=lines, start=start):
+
+        relative_matches = [match for match in line.matches if is_relative(match.url)]
+
+        if relative_matches:
+
+            yield LinkLineNumber(
+                number=line.number,
+                line=line.line,
+                matches=relative_matches,
+            )
+
+
 def markdown_image_links(
     lines: Optional[Sequence[str]] = None,
     start: int = 0,
@@ -379,6 +418,14 @@ class MarkdownDocument:
         """
 
         return list(markdown_links(self.contents))
+
+    @cached_property
+    def relative_links(self) -> Optional[Sequence[LinkLineNumber]]:
+        """
+        A Sequence of all lines that contain Markdown relative hyperlinks.
+        """
+
+        return list(markdown_relative_links(self.contents))
 
     @cached_property
     def image_links(self) -> Optional[Sequence[LinkLineNumber]]:
@@ -575,3 +622,32 @@ def find_all_files(root_path:Path) -> dict:
         assets.setdefault(filename.name, []).append(filename.relative_to(root_path))
 
     return assets
+
+
+def reverse_relative_links(md_files:Sequence[MarkdownDocument], root:Path=None) -> dict:
+    """
+
+    Given a sequence of MarkdownDocument objects, construct a dictionary
+    keyed by the filename of the document storing the list of relative
+    links within the document.
+
+    # Return
+
+    a dictionary
+
+    """
+
+    md_link_lookup = {}
+
+    for md in md_files:
+        key = md.filename
+
+        if root:
+            key = key.relative_to(root)
+
+        for ll in md.relative_links:
+
+            for match in ll.matches:
+                md_link_lookup.setdefault(key, set()).add(match.url)
+
+    return md_link_lookup

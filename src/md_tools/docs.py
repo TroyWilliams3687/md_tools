@@ -39,10 +39,7 @@ console = Console()
 
 from .validate import validate
 from .stats import stats
-
-# from .repair import repair
-# from .stats import stats
-# from .graph import graph
+from .graph import graph
 
 
 @click.group()
@@ -90,5 +87,5 @@ def main(*args, **kwargs):
 
 main.add_command(validate)
 main.add_command(stats)
-# main.add_command(graph)
+main.add_command(graph)
 # main.add_command(repair)

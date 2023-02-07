@@ -28,6 +28,7 @@ from md_tools.markdown_classifiers import (
 from md_tools.markdown import (
     LinkLineNumber,
     markdown_links,
+    markdown_relative_links,
     markdown_image_links,
     markdown_all_links,
     markdown_all_relative_links,
@@ -118,6 +119,56 @@ def test_markdown_links(data):
     for left, right in zip(reference, markdown_links(lines)):
         assert left == right
 
+
+
+# ----
+# Test markdown_relative_links
+
+# this is an integration test because this method makes use of outside_fence
+
+
+data = []
+
+
+data.append(
+    (
+        (
+            "1 Test 1 - basic line http://www.random.xyz",
+            "2 Test 1 - basic line",
+            "``` python",
+            "import re",
+            "print('test')",
+            "# [link](http://www.python.org)",
+            "```",
+            "3 Test 1 - basic line [here](https://www.bluebill.net)",
+            "4 Test 1 - basic line",
+            "5 Test 1 - [basic](./test.md) line",
+        ),
+        [
+            LinkLineNumber(
+                9,
+                "5 Test 1 - [basic](./test.md) line",
+                [
+                    MarkdownLinkRuleResult(
+                        full="[basic](./test.md)",
+                        text="basic",
+                        url="./test.md",
+                    )
+                ],
+            ),
+        ],
+    )
+)
+
+
+@pytest.mark.integration_test
+@pytest.mark.parametrize("data", data)
+def test_markdown_relative_links(data):
+
+    lines, reference = data
+
+    for left, right in zip(reference, markdown_relative_links(lines)):
+        assert left == right
 
 # ----
 # Testing markdown_image_links
