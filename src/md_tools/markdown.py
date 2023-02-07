@@ -508,6 +508,12 @@ def count_all_words(documents:Sequence[MarkdownDocument]) -> CountResult:
 
     """
 
+    if not documents:
+        return CountResult(
+            estimated_word_count=0,
+            estimated_page_count=0.0,
+        )
+
     # estimate the word count for each document
     word_counts = [document_word_count(doc) for doc in documents]
 
@@ -520,3 +526,52 @@ def count_all_words(documents:Sequence[MarkdownDocument]) -> CountResult:
         estimated_word_count=estimated_total_words,
         estimated_page_count=estimated_pages,
     )
+
+
+def find_markdown_files(root_path:Path) -> set[MarkdownDocument]:
+    """
+    Search the root path and find all markdown files.
+
+    returns a set of MarkdownDocument objects stored in a set.
+
+    """
+
+    # Store a reference to the Markdown files
+    markdown_files:set[MarkdownDocument] = set()
+
+    for filename in root_path.rglob("*"):
+
+        if filename.suffix == ".md":
+
+            markdown_files.add(MarkdownDocument(filename))
+
+    return markdown_files
+
+
+
+def find_all_files(root_path:Path) -> dict:
+    """
+    Search the root path and find all files returning a dictionary keyed
+    by filename pointing at a list containing Path objects. It is
+    possible to have the same filename on different paths
+
+    NOTE: The Path objects will have the path relative to the root_path.
+    """
+
+    # ----
+    # All files are considered assets, including the markdown files. The
+    # assets are simply things that can be the target of a link. The
+    # key will be the filename and the target a list of Path objects
+    # representing files with the same name, but in different paths.
+
+    # NOTE: When using the stored paths, they need to be relative to the
+    # root folder
+
+    assets:dict[str, Path] = {}
+
+    for filename in root_path.rglob("*"):
+
+        # add the asset to the correct folder, making sure it is relative to the root folder
+        assets.setdefault(filename.name, []).append(filename.relative_to(root_path))
+
+    return assets

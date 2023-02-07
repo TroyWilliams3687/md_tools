@@ -38,6 +38,7 @@ console = Console()
 from .markdown import (
     MarkdownDocument,
     count_all_words,
+    find_markdown_files,
 )
 
 # -------------
@@ -82,16 +83,9 @@ def stats(*args, **kwargs):
         console.print("[red]Root path has to be a directory.[/red]")
         ctx.abort()
 
-    # Store a reference to the Markdown files
-    markdown_files:set[MarkdownDocument] = set()
-
     search_start_time = datetime.now()
 
-    for filename in root_path.rglob("*"):
-
-        if filename.suffix == ".md":
-
-            markdown_files.add(MarkdownDocument(filename))
+    markdown_files = find_markdown_files(root_path)
 
     # Get a total word and page count estimate
     word_count = count_all_words(markdown_files)

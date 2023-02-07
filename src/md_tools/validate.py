@@ -37,6 +37,8 @@ console = Console()
 from .markdown import (
     MarkdownDocument,
     validate_markdown_relative_links,
+    find_markdown_files,
+    find_all_files,
 )
 
 # -------------
@@ -98,36 +100,11 @@ def validate(*args, **kwargs):
         console.print("[red]Root path has to be a directory.[/red]")
         ctx.abort()
 
-    # Store a reference to the Markdown files
-    markdown_files:set[MarkdownDocument] = set()
-
-    # ----
-    # All files are considered assets, including the markdown files. The
-    # assets are simply things that can be the target of a link. The
-    # key will be the filename and the target a list of Path objects
-    # representing files with the same name, but in different paths.
-
-    # NOTE: When using the stored paths, they need to be relative to the
-    # root folder
-
-    assets:dict[str, Path] = {}
-
     search_start_time = datetime.now()
 
-    for filename in root_path.rglob("*"):
+    markdown_files:set[MarkdownDocument] = find_markdown_files(root_path)
 
-        # console.print(f'[cyan]{filename}[/cyan]')
-
-        # add the asset to the correct folder, making sure it is relative to the root folder
-        assets.setdefault(filename.name, []).append(filename.relative_to(root_path))
-
-        if filename.suffix == ".md":
-
-            doc = MarkdownDocument(filename)
-            markdown_files.add(doc)
-
-            # print_doc(doc)
-            # console.print()
+    assets:dict[str, Path] = find_all_files(root_path)
 
     # ----
     # Validate Relative Links
