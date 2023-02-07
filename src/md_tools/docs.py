@@ -53,33 +53,16 @@ def main(*args, **kwargs):
 
     $ docs validate ./doc/root
 
-    $ docs graph ./doc/root
-
     $ docs stats ./doc/root
 
-    $ docs repair --dry-run links ./doc/root
+    $ docs graph ./doc/root
 
-    $ docs repair links ./doc/root
-
-    $ docs repair --dry-run images ./doc/root
-
-    $ docs repair images ./doc/root
-
-    $ docs repair --dry-run headers ./doc/root
-
-    $ docs repair --dry-run headers --list ./doc/root
-
-    $ docs repair headers --list ./doc/root
-
-    $ docs repair headers ./doc/root
     """
 
     # Initialize the shared context object to a dictionary and configure
     # it for the app
     ctx = args[0]
     ctx.ensure_object(dict)
-
-    # ctx.obj["cfg"] = setup([Path(p) for p in kwargs["config"]])
 
 
 # --------
