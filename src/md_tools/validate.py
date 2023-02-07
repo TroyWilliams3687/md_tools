@@ -37,7 +37,11 @@ console = Console()
 # ------------
 # Custom Modules
 
-from .markdown import MarkdownDocument, validate_markdown_relative_links
+from .markdown import (
+    MarkdownDocument,
+    validate_markdown_relative_links,
+    count_all_words,
+)
 
 # -------------
 
@@ -63,15 +67,6 @@ def print_doc(doc:MarkdownDocument) -> None:
 
             for i, m in enumerate(l.matches):
                 console.print(f"  - {i} Link -> [yellow]{m.full}[/yellow]")
-
-def document_word_count(doc:MarkdownDocument) -> int:
-    """
-    Given a document provide an estimate of the word count.
-    """
-
-    searcher = re.compile(r'\w+')
-    return sum([len(searcher.findall(line)) for line in doc.contents])
-
 
 @click.command("validate")
 @click.pass_context
@@ -145,11 +140,8 @@ def validate(*args, **kwargs):
     console.print()
 
     issue_count = 0
-    word_counts = []
 
     for doc in markdown_files:
-
-        word_counts.append(document_word_count(doc))
 
         results = validate_markdown_relative_links(doc, assets)
 
@@ -190,27 +182,23 @@ def validate(*args, **kwargs):
     # stop the clock
     search_end_time = datetime.now()
 
-    # estimate the totals words
-
-    total_words = sum(word_counts)
-    words_per_page = total_words / 500
-
-    # 500 words is an average, see:
-    # https://howardcc.libanswers.com/faq/69833
+    # Get a total word and page count estimate
+    word_count = count_all_words(markdown_files)
 
     # Convert the dict counts to strings and find the length so we can
     # use the value to format the numbers to line up properly f'{value:
     # {width}.{precision}}' Since this is for formatting and display, I
     # am not bothering with anything fancier
 
-    width = max(len(str(len(markdown_files))), len(str(len(assets))), len(str(total_words)))
+    width = max(len(str(len(markdown_files))), len(str(len(assets))), len(str(word_count.estimated_word_count)))
 
     console.print(f"[cyan]Documents Found:    {len(assets):>{width}}[/cyan]")
     console.print(f"[cyan]Markdown Documents: {len(markdown_files):>{width}}[/cyan]")
-    console.print(f"[cyan]Estimated Words:   {total_words:>{width},}[/cyan]")
 
-    console.print(f"[cyan]Estimated Pages:    {words_per_page:>{width},.1f}[/cyan]")
-    console.print(':clock1:')
+    console.print(f"[cyan]Estimated Words:   {word_count.estimated_word_count:>{width},}[/cyan]")
+    console.print(f"[cyan]Estimated Pages:    {word_count.estimated_page_count:>{width},.1f}[/cyan]")
+
+    console.print()
     console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
     console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
     console.print(f"[cyan]Elapsed:              {search_end_time - search_start_time}[/cyan]")

@@ -480,3 +480,43 @@ def validate_markdown_relative_links(
                 )
 
     return results
+
+def document_word_count(doc:MarkdownDocument) -> int:
+    """
+    Given a markdown document provide an estimate of the word count.
+    """
+
+    searcher = re.compile(r'\w+')
+    return sum([len(searcher.findall(line)) for line in doc.contents])
+
+
+class CountResult(NamedTuple):
+    """
+    The result of counting all the words in a sequence of documents
+    """
+
+    estimated_word_count:int
+    estimated_page_count:float
+
+def count_all_words(documents:Sequence[MarkdownDocument]) -> CountResult:
+    """
+    Given a sequence of documents, return the estimated total word count
+    and the estimated number of pages.
+
+    NOTE: 500 words is an average, see:
+    https://howardcc.libanswers.com/faq/69833
+
+    """
+
+    # estimate the word count for each document
+    word_counts = [document_word_count(doc) for doc in documents]
+
+    # estimate the totals words
+    estimated_total_words = sum(word_counts)
+
+    estimated_pages = estimated_total_words / 500
+
+    return CountResult(
+        estimated_word_count=estimated_total_words,
+        estimated_page_count=estimated_pages,
+    )

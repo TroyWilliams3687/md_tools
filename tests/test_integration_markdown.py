@@ -34,6 +34,8 @@ from md_tools.markdown import (
     MarkdownDocument,
     validate_markdown_relative_links,
     ValidationIssue,
+    count_all_words,
+    CountResult,
 )
 
 
@@ -807,5 +809,75 @@ def test_validate_markdown_relative_links(tmp_path, data):
     md = MarkdownDocument(p)
 
     results = validate_markdown_relative_links(md, assets)
+
+    assert valid_results == results
+
+# ----
+# Test count_all_words
+
+
+content = []
+results = []
+
+content.append(
+    [(
+        "# Hello World",
+        "This is a test of the counting system.",
+        "What should the count be?",
+        "What should the count be with a link: [test](test.txt)",
+    )]
+)
+
+
+results.append(
+    CountResult(
+        estimated_word_count=26,
+        estimated_page_count=26/500,
+    )
+)
+
+content.append(
+    [
+        (
+            "# Hello World",
+            "This is a test of the counting system.",
+            "What should the count be?",
+            "What should the count be with a link: [test](test.txt)",
+        ),
+        (
+         "# Another Test",
+         "   Here are some words."
+         ),
+    ]
+)
+
+
+results.append(
+    CountResult(
+        estimated_word_count=26+6,
+        estimated_page_count=(26+6)/500,
+    )
+)
+
+
+data = zip(content, results)
+
+@pytest.mark.parametrize("data", data)
+def test_count_all_words(tmp_path, data):
+
+    contents, valid_results = data
+
+    documents = []
+    for i, content in enumerate(contents):
+        # Dump the contents to a markdown file so we can test loading
+        d = tmp_path / "count_words"
+        d.mkdir(exist_ok=True)
+        p = d / f"test_{i}.md"
+        p.write_text("\n".join(content))
+
+        # load the file
+        documents.append(MarkdownDocument(p))
+
+    results = count_all_words(documents)
 
     assert valid_results == results
