@@ -38,6 +38,7 @@ console = Console()
 # Custom Modules
 
 from .validate import validate
+from .stats import stats
 
 # from .repair import repair
 # from .stats import stats
@@ -88,6 +89,6 @@ def main(*args, **kwargs):
 # Commands
 
 main.add_command(validate)
-# main.add_command(stats)
+main.add_command(stats)
 # main.add_command(graph)
 # main.add_command(repair)

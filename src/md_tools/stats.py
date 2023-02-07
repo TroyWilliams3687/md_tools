@@ -20,11 +20,8 @@ and the AST representation.
 # ------------
 # System Modules - Included with Python
 
-import re
-
+from pathlib import Path
 from datetime import datetime
-# from multiprocessing import Pool
-# from functools import partial
 
 # ------------
 # 3rd Party - From pip
@@ -38,190 +35,88 @@ console = Console()
 # ------------
 # Custom Modules
 
-# from ..documentos.common import run_cmd
+from .markdown import (
+    MarkdownDocument,
+    count_all_words,
+)
 
 # -------------
 
-# import re
-# line = " I am having a very nice day."
-# count = len(re.findall(r'\w+', line))
-# print (count)
+@click.command("stats")
+@click.pass_context
+@click.argument(
+    "root_path",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        readable=True,
+        path_type=Path,
+    ),
+)
+def stats(*args, **kwargs):
+    """
+    Given the `search` path, recursively find all the Markdown files and
+    perform a word count return the stats.
 
+    ```
+    Started  - 2021-05-19 13:57:30.698969
+    Finished - 2021-05-19 13:57:49.755689
+    Elapsed:   0:00:19.056720
 
-# This is the pandoc filter will will write out to a temporary location
+    Total Documents:      735
+    Total Words:      182,584
+    Estimated Pages:    365.2
+    ```
 
-# lua_filter = {
-#     "name": "wordcount.lua",
-#     "contents": [
-#         "-- counts words in a document",
-#         "",
-#         "words = 0",
-#         "",
-#         "wordcount = {",
-#         "  Str = function(el)",
-#         "    -- we don't count a word if it's entirely punctuation:",
-#         '    if el.text:match("%P") then',
-#         "        words = words + 1",
-#         "    end",
-#         "  end,",
-#         "",
-#         "  Code = function(el)",
-#         '    _,n = el.text:gsub("%S+","")',
-#         "    words = words + n",
-#         "  end,",
-#         "",
-#         "  CodeBlock = function(el)",
-#         '    _,n = el.text:gsub("%S+","")',
-#         "    words = words + n",
-#         "  end",
-#         "}",
-#         "",
-#         "function Pandoc(el)",
-#         "    -- skip metadata, just count body:",
-#         "    pandoc.walk_block(pandoc.Div(el.blocks), wordcount)",
-#         '    print(words .. " words in body")',
-#         "    os.exit(0)",
-#         "end",
-#     ],
-# }
+    # Usage
 
+    $ docs stats /home/troy/repositories/documentation/aegis.documentation.sphinx/docs/source
 
-# def construct_pandoc_command(
-#     input_file=None,
-#     lua_filter=None,
-# ):
-#     """
-#     Construct the Pandoc command.
+    """
 
-#     # Parameters
+    root_path = kwargs["root_path"].expanduser().resolve()
 
-#     input_file:pathlib.Path
-#         - The file that we want to apply the lua filter too.
+    console.print(f"Searching: {root_path}")
 
-#     lua_filter:pathlib.Path
-#         - The path to the lua filter to use for the word counts.
+    if root_path.is_file():
+        console.print("[red]Root path has to be a directory.[/red]")
+        ctx.abort()
 
-#     # Return
+    # Store a reference to the Markdown files
+    markdown_files:set[MarkdownDocument] = set()
 
-#     A list of CLI elements that will be used by subprocess.
-#     """
+    search_start_time = datetime.now()
 
-#     # --------
-#     # Basic Commands
+    for filename in root_path.rglob("*"):
 
-#     return [
-#         "pandoc",
-#         "--lua-filter",
-#         lua_filter,
-#         input_file,
-#     ]
+        if filename.suffix == ".md":
 
+            markdown_files.add(MarkdownDocument(filename))
 
-# def process_markdown(
-#     md=None,
-#     lua_script=None,
-# ):
-#     """ """
+    # Get a total word and page count estimate
+    word_count = count_all_words(markdown_files)
 
-#     pandoc = construct_pandoc_command(
-#         input_file=md,
-#         lua_filter=lua_script,
-#     )
+    # stop the clock
+    search_end_time = datetime.now()
 
-#     stdout = run_cmd(pandoc)
+    # Convert the dict counts to strings and find the length so we can
+    # use the value to format the numbers to line up properly f'{value:
+    # {width}.{precision}}' Since this is for formatting and display, I
+    # am not bothering with anything fancier
 
-#     if len(stdout) == 1:
+    width = max(
+        len(str(len(markdown_files))),
+        len(str(word_count.estimated_word_count)),
+    )
 
-#         # The string will be of the form 'xxx words in body'. We need to
-#         # strip the text and process the count
-#         count = int(stdout[0].replace(" words in body", ""))
+    console.print()
+    console.print(f"[cyan]Markdown Documents: {len(markdown_files):>{width}}[/cyan]")
 
-#         console.print(f"Counted {md.name} -> {count} words...")
+    console.print(f"[cyan]Estimated Words:   {word_count.estimated_word_count:>{width},}[/cyan]")
+    console.print(f"[cyan]Estimated Pages:    {word_count.estimated_page_count:>{width},.1f}[/cyan]")
 
-#         return count
-
-#     else:
-#         # something is wrong
-#         raise ValueError(
-#             f"Unexpected Return from Pandoc. Expected 1 line, got {len(stdout)}..."
-#         )
-
-
-# @click.command("stats")
-# @click.pass_context
-# def stats(*args, **kwargs):
-#     """
-#     \b
-#     Given the `search` path, recursively find all the Markdown files and
-#     perform a word count return the stats.
-
-#     ```
-#     Started  - 2021-05-19 13:57:30.698969
-#     Finished - 2021-05-19 13:57:49.755689
-#     Elapsed:   0:00:19.056720
-
-#     Total Documents:      735
-#     Total Words:      182,584
-#     Estimated Pages:    365.2
-#     ```
-
-#     # Usage
-
-#     $ docs --config=./en/config.common.yaml stats
-
-#     """
-
-#     # Extract the configuration file from the click context
-#     config = args[0].obj["cfg"]
-
-#     # construct the lua script
-
-#     config["cache_folder"].mkdir(parents=True, exist_ok=True)
-
-#     lua_script = config["cache_folder"].joinpath(lua_filter["name"])
-
-#     lua_script.write_text("\n".join(lua_filter["contents"]))
-
-#     build_start_time = datetime.now()
-
-#     word_counts = []
-
-#     # We define our main processing function using keyword arguments. If
-#     # we wanted to use positional arguments we would have to adjust the
-#     # parameter list so that the markdown file is last. It seems like
-#     # using kwargs is easier.
-#     fp = partial(process_markdown, lua_script=lua_script)
-
-#     # -----------
-#     # Multi-Processing
-
-#     # https://docs.python.org/3/library/multiprocessing.html
-
-#     # Use max cores - default
-#     with Pool(processes=None) as p:
-#         word_counts = p.map(fp, config["documents.path"].rglob("*.md"))
-
-#     # NOTE: The above works because the kwarg in fp, md is in the first
-#     # position. It could have been defined using positional arguments
-#     # and have the file be the second item in the list.
-
-#     # -----------
-#     build_end_time = datetime.now()
-
-#     console.print("")
-#     console.print("-----")
-#     console.print(f"Started  - {build_start_time}")
-#     console.print(f"Finished - {build_end_time}")
-#     console.print(f"Elapsed:   {build_end_time - build_start_time}")
-
-#     console.print("")
-
-#     total_words = sum(word_counts)
-#     words_per_page = total_words / 500
-
-#     # 500 words is an average, see:
-#     # https://howardcc.libanswers.com/faq/69833
-
-#     console.print(f"Total Documents: {len(word_counts):>8,}")
-#     console.print(f"Total Words:     {total_words:>8,}")
-#     console.print(f"Estimated Pages: {words_per_page:>8,.1f}")
+    console.print()
+    console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
+    console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
+    console.print(f"[cyan]Elapsed:              {search_end_time - search_start_time}[/cyan]")
+    console.print()

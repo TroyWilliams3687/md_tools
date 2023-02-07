@@ -19,10 +19,7 @@ system for issues. The `repair` command can fix some of the issues.
 # ------------
 # System Modules - Included with Python
 
-import re
-
 from pathlib import Path
-from itertools import chain
 from datetime import datetime
 
 # ------------
@@ -40,7 +37,6 @@ console = Console()
 from .markdown import (
     MarkdownDocument,
     validate_markdown_relative_links,
-    count_all_words,
 )
 
 # -------------
@@ -182,22 +178,18 @@ def validate(*args, **kwargs):
     # stop the clock
     search_end_time = datetime.now()
 
-    # Get a total word and page count estimate
-    word_count = count_all_words(markdown_files)
-
     # Convert the dict counts to strings and find the length so we can
     # use the value to format the numbers to line up properly f'{value:
     # {width}.{precision}}' Since this is for formatting and display, I
     # am not bothering with anything fancier
 
-    width = max(len(str(len(markdown_files))), len(str(len(assets))), len(str(word_count.estimated_word_count)))
+    width = max(
+        len(str(len(markdown_files))),
+        len(str(len(assets))),
+    )
 
     console.print(f"[cyan]Documents Found:    {len(assets):>{width}}[/cyan]")
     console.print(f"[cyan]Markdown Documents: {len(markdown_files):>{width}}[/cyan]")
-
-    console.print(f"[cyan]Estimated Words:   {word_count.estimated_word_count:>{width},}[/cyan]")
-    console.print(f"[cyan]Estimated Pages:    {word_count.estimated_page_count:>{width},.1f}[/cyan]")
-
     console.print()
     console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
     console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
