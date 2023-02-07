@@ -43,6 +43,7 @@ from .markdown import (
 
 # -------------
 
+
 @click.command("stats")
 @click.pass_context
 @click.argument(
@@ -106,11 +107,17 @@ def stats(*args, **kwargs):
     console.print()
     console.print(f"[cyan]Markdown Documents: {len(markdown_files):>{width}}[/cyan]")
 
-    console.print(f"[cyan]Estimated Words:   {word_count.estimated_word_count:>{width},}[/cyan]")
-    console.print(f"[cyan]Estimated Pages:    {word_count.estimated_page_count:>{width},.1f}[/cyan]")
+    console.print(
+        f"[cyan]Estimated Words:   {word_count.estimated_word_count:>{width},}[/cyan]"
+    )
+    console.print(
+        f"[cyan]Estimated Pages:    {word_count.estimated_page_count:>{width},.1f}[/cyan]"
+    )
 
     console.print()
     console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
     console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
-    console.print(f"[cyan]Elapsed:              {search_end_time - search_start_time}[/cyan]")
+    console.print(
+        f"[cyan]Elapsed:              {search_end_time - search_start_time}[/cyan]"
+    )
     console.print()

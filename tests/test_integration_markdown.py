@@ -113,12 +113,10 @@ data.append(
 @pytest.mark.integration_test
 @pytest.mark.parametrize("data", data)
 def test_markdown_links(data):
-
     lines, reference = data
 
     for left, right in zip(reference, markdown_links(lines)):
         assert left == right
-
 
 
 # ----
@@ -164,11 +162,11 @@ data.append(
 @pytest.mark.integration_test
 @pytest.mark.parametrize("data", data)
 def test_markdown_relative_links(data):
-
     lines, reference = data
 
     for left, right in zip(reference, markdown_relative_links(lines)):
         assert left == right
+
 
 # ----
 # Testing markdown_image_links
@@ -253,7 +251,6 @@ data.append(
 @pytest.mark.integration_test
 @pytest.mark.parametrize("data", data)
 def test_markdown_image_links(data):
-
     lines, reference = data
 
     for left, right in zip(reference, markdown_image_links(lines)):
@@ -348,7 +345,6 @@ data.append(
 @pytest.mark.integration_test
 @pytest.mark.parametrize("data", data)
 def test_markdown_all_links(data):
-
     lines, reference = data
 
     for left, right in zip(reference, markdown_all_links(lines)):
@@ -411,7 +407,6 @@ data.append(
 @pytest.mark.integration_test
 @pytest.mark.parametrize("data", data)
 def test_markdown_all_relative_links(data):
-
     lines, reference = data
 
     for left, right in zip(reference, markdown_all_relative_links(lines)):
@@ -445,7 +440,6 @@ test_content = (
 # https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html
 @pytest.fixture(scope="session")
 def create_markdown_file(tmp_path_factory):
-
     fn = tmp_path_factory.mktemp("data") / "test.md"
     fn.write_text("\n".join(test_content))
 
@@ -466,7 +460,6 @@ data.append(("import redtime", None))
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownDocument_line_lookup(create_markdown_file, data):
-
     line, numbers = data
 
     md = MarkdownDocument(create_markdown_file)
@@ -524,7 +517,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownDocument_links(create_markdown_file, data):
-
     links = data
 
     md = MarkdownDocument(create_markdown_file)
@@ -579,7 +571,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownDocument_image_links(create_markdown_file, data):
-
     links = data
 
     md = MarkdownDocument(create_markdown_file)
@@ -651,7 +642,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownDocument_all_links(create_markdown_file, data):
-
     links = data
 
     md = MarkdownDocument(create_markdown_file)
@@ -702,7 +692,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownDocument_all_relative_links(create_markdown_file, data):
-
     links = data
 
     md = MarkdownDocument(create_markdown_file)
@@ -727,15 +716,15 @@ content.append(
 
 assets.append(
     {
-    "test.txt":[Path("test.txt")],
-    "image.png":[Path("image.png")],
+        "test.txt": [Path("test.txt")],
+        "image.png": [Path("image.png")],
     }
 )
 
 # Nothing missing or incorrect
 results.append(
     {
-        "line_count":3,
+        "line_count": 3,
         # "incorrect":[],
         # "missing":[],
     }
@@ -752,35 +741,41 @@ content.append(
 
 assets.append(
     {
-    "image.png":[Path("image.png")],
+        "image.png": [Path("image.png")],
     }
 )
 
 # missing files i.e. the name didn't appear in the assets
 results.append(
     {
-        "line_count":3,
+        "line_count": 3,
         # "incorrect":[],
-        "missing":[
+        "missing": [
             ValidationIssue(
                 line=LinkLineNumber(
                     number=0,
-                    line='[test](test.txt)',
-                    matches=[MarkdownLinkRuleResult(
-                        full='[test](test.txt)',
-                        text='test',
-                        url='test.txt')]),
-                issue=Path('test.txt')),
+                    line="[test](test.txt)",
+                    matches=[
+                        MarkdownLinkRuleResult(
+                            full="[test](test.txt)", text="test", url="test.txt"
+                        )
+                    ],
+                ),
+                issue=Path("test.txt"),
+            ),
             ValidationIssue(
                 line=LinkLineNumber(
                     number=2,
-                    line='[test](test.txt) and [test2](https://www.google.com)',
-                    matches=[MarkdownLinkRuleResult(
-                        full='[test](test.txt)',
-                        text='test',
-                        url='test.txt')]),
-                issue=Path('test.txt'))
-            ],
+                    line="[test](test.txt) and [test2](https://www.google.com)",
+                    matches=[
+                        MarkdownLinkRuleResult(
+                            full="[test](test.txt)", text="test", url="test.txt"
+                        )
+                    ],
+                ),
+                issue=Path("test.txt"),
+            ),
+        ],
     }
 )
 
@@ -795,49 +790,53 @@ content.append(
 
 assets.append(
     {
-    "test.txt":[Path("src/test.txt")],
-    "image.png":[Path("src/image.png")],
+        "test.txt": [Path("src/test.txt")],
+        "image.png": [Path("src/image.png")],
     }
 )
 
 # the files appear in assets, but not in the correct spot
 results.append(
     {
-        'line_count': 3,
-        'incorrect': [
+        "line_count": 3,
+        "incorrect": [
             ValidationIssue(
                 line=LinkLineNumber(
                     number=0,
-                    line='[test](test.txt)',
+                    line="[test](test.txt)",
                     matches=[
                         MarkdownLinkRuleResult(
-                            full='[test](test.txt)',
-                            text='test',
-                            url='test.txt'
+                            full="[test](test.txt)", text="test", url="test.txt"
                         )
-                    ]),
-                issue=Path('test.txt')),
+                    ],
+                ),
+                issue=Path("test.txt"),
+            ),
             ValidationIssue(
                 line=LinkLineNumber(
                     number=1,
-                    line='![image](image.png)',
+                    line="![image](image.png)",
                     matches=[
                         MarkdownImageLinkRuleResult(
-                            full='![image](image.png)',
-                            text='image',
-                            url='image.png')
-                    ]),
-                issue=Path('image.png')),
+                            full="![image](image.png)", text="image", url="image.png"
+                        )
+                    ],
+                ),
+                issue=Path("image.png"),
+            ),
             ValidationIssue(
                 line=LinkLineNumber(
                     number=2,
-                    line='[test](test.txt) and [test2](https://www.google.com)',
+                    line="[test](test.txt) and [test2](https://www.google.com)",
                     matches=[
                         MarkdownLinkRuleResult(
-                            full='[test](test.txt)',
-                            text='test', url='test.txt')]),
-                issue=Path('test.txt'))
-            ]
+                            full="[test](test.txt)", text="test", url="test.txt"
+                        )
+                    ],
+                ),
+                issue=Path("test.txt"),
+            ),
+        ],
     }
 )
 
@@ -847,7 +846,6 @@ data = zip(content, assets, results)
 
 @pytest.mark.parametrize("data", data)
 def test_validate_markdown_relative_links(tmp_path, data):
-
     content, assets, valid_results = data
 
     # Dump the contents to a markdown file so we can test loading
@@ -863,6 +861,7 @@ def test_validate_markdown_relative_links(tmp_path, data):
 
     assert valid_results == results
 
+
 # ----
 # Test count_all_words
 
@@ -871,19 +870,21 @@ content = []
 results = []
 
 content.append(
-    [(
-        "# Hello World",
-        "This is a test of the counting system.",
-        "What should the count be?",
-        "What should the count be with a link: [test](test.txt)",
-    )]
+    [
+        (
+            "# Hello World",
+            "This is a test of the counting system.",
+            "What should the count be?",
+            "What should the count be with a link: [test](test.txt)",
+        )
+    ]
 )
 
 
 results.append(
     CountResult(
         estimated_word_count=26,
-        estimated_page_count=26/500,
+        estimated_page_count=26 / 500,
     )
 )
 
@@ -895,27 +896,24 @@ content.append(
             "What should the count be?",
             "What should the count be with a link: [test](test.txt)",
         ),
-        (
-         "# Another Test",
-         "   Here are some words."
-         ),
+        ("# Another Test", "   Here are some words."),
     ]
 )
 
 
 results.append(
     CountResult(
-        estimated_word_count=26+6,
-        estimated_page_count=(26+6)/500,
+        estimated_word_count=26 + 6,
+        estimated_page_count=(26 + 6) / 500,
     )
 )
 
 
 data = zip(content, results)
 
+
 @pytest.mark.parametrize("data", data)
 def test_count_all_words(tmp_path, data):
-
     contents, valid_results = data
 
     documents = []

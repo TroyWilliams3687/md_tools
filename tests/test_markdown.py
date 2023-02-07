@@ -189,13 +189,11 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MDFence(data):
-
     # lines, results = data
 
     in_block = MDFence()
 
     for line, result in zip(*data):
-
         assert in_block(line) == result
 
 
@@ -281,7 +279,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_outside_fence(data):
-
     lines, results = data
 
     for left, right in zip(outside_fence(lines), results):

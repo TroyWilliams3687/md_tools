@@ -46,7 +46,6 @@ class TokenRule(ABC):
     """
 
     def __init__(self, **kwargs):
-
         self._build_regex()
         self._result = None
 
@@ -134,7 +133,6 @@ class MarkdownLinkRule(TokenRule):
         )
 
     def _search_text(self, text: str = None) -> Sequence[MarkdownLinkRuleResult]:
-
         return [
             MarkdownLinkRuleResult(
                 full=m.group(),
@@ -188,7 +186,6 @@ class MarkdownImageLinkRule(TokenRule):
         )
 
     def _search_text(self, text: str = None) -> Sequence[MarkdownImageLinkRuleResult]:
-
         return [
             MarkdownImageLinkRuleResult(
                 full=m.group(),
@@ -239,7 +236,6 @@ class HTMLImageLinkRule(TokenRule):
     """
 
     def _build_regex(self):
-
         self._regex = re.compile(
             r"<img\s+[^>]*src=\"(?P<src>[^\"]*)\"[^>]*>",
         )
@@ -325,12 +321,10 @@ class RelativeURLRule:
     """
 
     def __init__(self, **kwargs):
-
         self._build_regex()
         self._result = None
 
     def _build_regex(self):
-
         self._regex = re.compile(
             r"^(?!.*:\/\/)(?P<file>[^#]*?)(?P<section>#.*)?$",
         )
@@ -405,12 +399,10 @@ class AbsoluteURLRule:
     """
 
     def __init__(self, **kwargs):
-
         self._build_regex()
         self._result = None
 
     def _build_regex(self):
-
         self._regex = re.compile(
             r"^(?P<url>(?:https?|ftp)://\S*)$",
         )
@@ -471,12 +463,10 @@ class CodeFenceRule:
     """
 
     def __init__(self, **kwargs):
-
         self._build_regex()
         self._result = None
 
     def _build_regex(self):
-
         self._regex = re.compile(
             r"^\s*(?:`{3,}|~{3,})\s*(?P<infostring>\w*).*$",
         )
@@ -519,7 +509,6 @@ class YamlBlockRule:
     """
 
     def __init__(self, **kwargs):
-
         self._regex = re.compile(
             r"^(-{3}|\.{3})\s*$",
         )

@@ -71,7 +71,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownLinkRule_match(data):
-
     value, result = data
     rule = MarkdownLinkRule()
     assert rule(value) == result
@@ -145,7 +144,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownLinkRule_result(data):
-
     value, results = data
     rule = MarkdownLinkRule()
 
@@ -202,7 +200,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownImageLinkRule_match(data):
-
     value, result = data
     rule = MarkdownImageLinkRule()
 
@@ -306,7 +303,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_MarkdownImageLinkRule_results(data):
-
     value, results = data
     rule = MarkdownImageLinkRule()
 
@@ -347,7 +343,6 @@ data.append(("<img/>", False))
 
 @pytest.mark.parametrize("data", data)
 def test_html_image_rule_match(data):
-
     question, answer = data
     rule = HTMLImageLinkRule()
 
@@ -411,7 +406,6 @@ data.append(("<img/>", None))
 
 @pytest.mark.parametrize("data", data)
 def test_html_image_rule_extraction(data):
-
     question, answer = data
     rule = HTMLImageLinkRule()
 
@@ -451,7 +445,6 @@ data.append(("../../assets/HyperbolaAnatomyLeft.png", True))
 
 @pytest.mark.parametrize("data", data)
 def test_RelativeURLRule_match(data):
-
     value, result = data
     rule = RelativeURLRule()
 
@@ -511,7 +504,6 @@ data.append(
 
 @pytest.mark.parametrize("data", data)
 def test_RelativeURLRule_result(data):
-
     value, results = data
     rule = RelativeURLRule()
 
@@ -538,7 +530,6 @@ data.append(("google.com", False))
 
 @pytest.mark.parametrize("data", data)
 def test_absolute_url_rule_match(data):
-
     value, result = data
     rule = AbsoluteURLRule()
 
@@ -574,7 +565,6 @@ data.append(("google.com", None))
 
 @pytest.mark.parametrize("data", data)
 def test_absolute_url_rule_extraction(data):
-
     value, results = data
     rule = AbsoluteURLRule()
 
@@ -614,7 +604,6 @@ data.append(("     ``~`    python", False))
 
 @pytest.mark.parametrize("data", data)
 def test_CodeFenceRule_match(data):
-
     value, result = data
     rule = CodeFenceRule()
 
@@ -731,7 +720,6 @@ data.append(("     ``~`    python", None))
 
 @pytest.mark.parametrize("data", data)
 def test_CodeFenceRule_result(data):
-
     value, result = data
     rule = CodeFenceRule()
 
@@ -766,7 +754,6 @@ data.append(("  ... ", False))
 
 @pytest.mark.parametrize("data", data)
 def test_YamlBlockRule_result(data):
-
     value, result = data
     rule = YamlBlockRule()
 

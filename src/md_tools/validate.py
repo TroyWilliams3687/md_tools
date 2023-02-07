@@ -44,7 +44,7 @@ from .markdown import (
 # -------------
 
 
-def print_doc(doc:MarkdownDocument) -> None:
+def print_doc(doc: MarkdownDocument) -> None:
     """
     Given a MarkdownDocument, display all the relative links to stdout
     along with the line numbers.
@@ -54,17 +54,17 @@ def print_doc(doc:MarkdownDocument) -> None:
     digits = len(str(line_count))
 
     for l in doc.all_relative_links:
-
         if len(l.matches) == 1:
-
-            console.print(f"Line: {l.number:>{digits}} -> [yellow]{l.matches[0].full}[/yellow]")
+            console.print(
+                f"Line: {l.number:>{digits}} -> [yellow]{l.matches[0].full}[/yellow]"
+            )
 
         else:
-
             console.print(f"Line: {l.number:{digits}} -> Links:{len(l.matches)}")
 
             for i, m in enumerate(l.matches):
                 console.print(f"  - {i} Link -> [yellow]{m.full}[/yellow]")
+
 
 @click.command("validate")
 @click.pass_context
@@ -102,24 +102,25 @@ def validate(*args, **kwargs):
 
     search_start_time = datetime.now()
 
-    markdown_files:set[MarkdownDocument] = find_markdown_files(root_path)
+    markdown_files: set[MarkdownDocument] = find_markdown_files(root_path)
 
-    assets:dict[str, Path] = find_all_files(root_path)
+    assets: dict[str, Path] = find_all_files(root_path)
 
     # ----
     # Validate Relative Links
 
-    console.print('Validating Relative Markdown Links and Image Links...')
+    console.print("Validating Relative Markdown Links and Image Links...")
     console.print()
 
     issue_count = 0
 
     for doc in markdown_files:
-
         results = validate_markdown_relative_links(doc, assets)
 
         if "incorrect" in results or "missing" in results:
-            console.print(f"[green]MARKDOWN: {doc.filename}[/green] Links: [yellow]{len(doc.contents)}[/yellow]")
+            console.print(
+                f"[green]MARKDOWN: {doc.filename}[/green] Links: [yellow]{len(doc.contents)}[/yellow]"
+            )
             console.print()
 
             if "incorrect" in results:
@@ -129,8 +130,9 @@ def validate(*args, **kwargs):
                 issue_count += len(results["incorrect"])
 
                 for incorrect in results["incorrect"]:
-
-                    console.print(f"Line: {incorrect.line.number}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]")
+                    console.print(
+                        f"Line: {incorrect.line.number}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]"
+                    )
 
                     for asset in assets[incorrect.issue.name]:
                         console.print(f"    [cyan]OPTIONS -> {asset} [/cyan]")
@@ -143,8 +145,9 @@ def validate(*args, **kwargs):
                 issue_count += len(results["missing"])
 
                 for missing in results["missing"]:
-
-                    console.print(f"Line: {missing.line.number}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]")
+                    console.print(
+                        f"Line: {missing.line.number}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]"
+                    )
 
             console.print()
 
@@ -170,5 +173,7 @@ def validate(*args, **kwargs):
     console.print()
     console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
     console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
-    console.print(f"[cyan]Elapsed:              {search_end_time - search_start_time}[/cyan]")
+    console.print(
+        f"[cyan]Elapsed:              {search_end_time - search_start_time}[/cyan]"
+    )
     console.print()

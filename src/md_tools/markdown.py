@@ -73,7 +73,6 @@ class MDFence:
     """
 
     def __init__(self):
-
         self.fence_types = ("code", "yaml")
 
         rules = (CodeFenceRule(), YamlBlockRule())
@@ -82,12 +81,9 @@ class MDFence:
         self.in_fence = dict(zip(self.fence_types, (False, False)))
 
     def __call__(self, line: str = None) -> bool:
-
         # Are we in a block?
         for bt in self.fence_types:
-
             if self.in_fence[bt]:
-
                 # Are we at the end?
                 if self.rules[bt](line):
                     self.in_fence[bt] = False
@@ -100,7 +96,6 @@ class MDFence:
 
         # Have we entered a fence block?
         for bt in self.fence_types:
-
             if self.rules[bt](line):
                 self.in_fence[bt] = True
 
@@ -148,7 +143,6 @@ def outside_fence(
     in_block = MDFence()
 
     for i, line in enumerate(lines, start=start):
-
         if in_block(line):
             continue
 
@@ -180,10 +174,8 @@ def _rule_filter(
     """
 
     for valid_line in outside_fence(lines, start=start):
-
         matches = []
         for rule in rules:
-
             if rule(valid_line.line):
                 matches += rule.result
 
@@ -241,16 +233,14 @@ def markdown_relative_links(
 
     """
 
-    all_link_rules = (MarkdownLinkRule(), )
+    all_link_rules = (MarkdownLinkRule(),)
 
     is_relative = RelativeURLRule()
 
     for line in _rule_filter(rules=all_link_rules, lines=lines, start=start):
-
         relative_matches = [match for match in line.matches if is_relative(match.url)]
 
         if relative_matches:
-
             yield LinkLineNumber(
                 number=line.number,
                 line=line.line,
@@ -342,20 +332,14 @@ def markdown_all_relative_links(
     is_relative = RelativeURLRule()
 
     for line in _rule_filter(rules=all_link_rules, lines=lines, start=start):
-
         relative_matches = [match for match in line.matches if is_relative(match.url)]
 
         if relative_matches:
-
             yield LinkLineNumber(
                 number=line.number,
                 line=line.line,
                 matches=relative_matches,
             )
-
-
-
-
 
 
 @dataclass(frozen=True)
@@ -392,7 +376,6 @@ class MarkdownDocument:
         # we could have duplicate lines, create a list of lines that
         # match the text
         for i, k in enumerate(self.contents):
-
             reverse.setdefault(k, []).append(i)
 
         return reverse
@@ -408,7 +391,6 @@ class MarkdownDocument:
             return self._line_lookup[line]
 
         else:
-
             return None
 
     @cached_property
@@ -461,13 +443,14 @@ class ValidationIssue(NamedTuple):
     encapsulates the line and the issue.
     """
 
-    line:LinkLineNumber
-    issue:Path
+    line: LinkLineNumber
+    issue: Path
+
 
 def validate_markdown_relative_links(
-        doc:MarkdownDocument,
-        assets:dict[str, Path],
-    ) -> dict:
+    doc: MarkdownDocument,
+    assets: dict[str, Path],
+) -> dict:
     """
     Validate all the relative links within the markdown document by
     comparing the files against the assets dictionary.
@@ -489,51 +472,48 @@ def validate_markdown_relative_links(
 
     """
 
-    results:dict = {"line_count":len(doc.contents)}
+    results: dict = {"line_count": len(doc.contents)}
 
     for rl in doc.all_relative_links:
-
         for link in rl.matches:
             match_path = Path(link.url)
 
             if match_path.name in assets:
-
                 for asset in assets[match_path.name]:
                     potential_target = asset
 
                     if match_path == potential_target:
-                        break # found a match
+                        break  # found a match
 
                 else:
-
                     # now matches - we know the file name exists, but is
                     # pointing to the wrong one
 
                     results.setdefault("incorrect", []).append(
                         ValidationIssue(
-                        line=rl,
-                        issue=match_path,
+                            line=rl,
+                            issue=match_path,
                         )
                     )
 
             else:
-
                 # the file doesn't exist and there are no assets that match it.
                 results.setdefault("missing", []).append(
                     ValidationIssue(
-                    line=rl,
-                    issue=match_path,
+                        line=rl,
+                        issue=match_path,
                     )
                 )
 
     return results
 
-def document_word_count(doc:MarkdownDocument) -> int:
+
+def document_word_count(doc: MarkdownDocument) -> int:
     """
     Given a markdown document provide an estimate of the word count.
     """
 
-    searcher = re.compile(r'\w+')
+    searcher = re.compile(r"\w+")
     return sum([len(searcher.findall(line)) for line in doc.contents])
 
 
@@ -542,10 +522,11 @@ class CountResult(NamedTuple):
     The result of counting all the words in a sequence of documents
     """
 
-    estimated_word_count:int
-    estimated_page_count:float
+    estimated_word_count: int
+    estimated_page_count: float
 
-def count_all_words(documents:Sequence[MarkdownDocument]) -> CountResult:
+
+def count_all_words(documents: Sequence[MarkdownDocument]) -> CountResult:
     """
     Given a sequence of documents, return the estimated total word count
     and the estimated number of pages.
@@ -575,7 +556,7 @@ def count_all_words(documents:Sequence[MarkdownDocument]) -> CountResult:
     )
 
 
-def find_markdown_files(root_path:Path) -> set[MarkdownDocument]:
+def find_markdown_files(root_path: Path) -> set[MarkdownDocument]:
     """
     Search the root path and find all markdown files.
 
@@ -584,19 +565,16 @@ def find_markdown_files(root_path:Path) -> set[MarkdownDocument]:
     """
 
     # Store a reference to the Markdown files
-    markdown_files:set[MarkdownDocument] = set()
+    markdown_files: set[MarkdownDocument] = set()
 
     for filename in root_path.rglob("*"):
-
         if filename.suffix == ".md":
-
             markdown_files.add(MarkdownDocument(filename))
 
     return markdown_files
 
 
-
-def find_all_files(root_path:Path) -> dict:
+def find_all_files(root_path: Path) -> dict:
     """
     Search the root path and find all files returning a dictionary keyed
     by filename pointing at a list containing Path objects. It is
@@ -614,17 +592,18 @@ def find_all_files(root_path:Path) -> dict:
     # NOTE: When using the stored paths, they need to be relative to the
     # root folder
 
-    assets:dict[str, Path] = {}
+    assets: dict[str, Path] = {}
 
     for filename in root_path.rglob("*"):
-
         # add the asset to the correct folder, making sure it is relative to the root folder
         assets.setdefault(filename.name, []).append(filename.relative_to(root_path))
 
     return assets
 
 
-def reverse_relative_links(md_files:Sequence[MarkdownDocument], root:Path=None) -> dict:
+def reverse_relative_links(
+    md_files: Sequence[MarkdownDocument], root: Path = None
+) -> dict:
     """
 
     Given a sequence of MarkdownDocument objects, construct a dictionary
@@ -646,7 +625,6 @@ def reverse_relative_links(md_files:Sequence[MarkdownDocument], root:Path=None) 
             key = key.relative_to(root)
 
         for ll in md.relative_links:
-
             for match in ll.matches:
                 md_link_lookup.setdefault(key, set()).add(match.url)
 

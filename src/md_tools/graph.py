@@ -31,6 +31,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from rich.console import Console
+
 console = Console()
 
 # ------------
@@ -55,7 +56,6 @@ def create_sub_graph(G, incoming_limit=1, outgoing_limit=0):
 
     # find the nodes that only have one incoming edge and 0 outgoing
     for n in G.nodes:
-
         incoming = G.in_edges(nbunch=n)
         outgoing = G.out_edges(nbunch=n)
 
@@ -73,14 +73,12 @@ def construct_edges(md_links, root=None):
     edges = []
 
     for md in md_links:
-
         key = md
 
         if root:
             key = key.relative_to(root)
 
         if key in md_links:
-
             for rl in md_links[key]:
                 edges.append((key, str(rl)))
 
