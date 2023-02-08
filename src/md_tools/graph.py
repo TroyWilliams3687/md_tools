@@ -13,7 +13,7 @@
 # -----------
 
 """
-The graph command will display a plot, a DAG, showing the inter-connections
+The graph command will display a network plot, showing the inter-connections
 between all of the documents in the system.
 """
 
@@ -99,7 +99,7 @@ def construct_edges(md_links, root=None):
 def graph(*args, **kwargs):
     """
 
-    Show the graph connecting all of the documents together.
+    Show a network graph connecting all of the documents together.
 
     # Usage
 

@@ -79,7 +79,10 @@ def print_doc(doc: MarkdownDocument) -> None:
 )
 def validate(*args, **kwargs):
     """
-    Perform validation checks for Markdown files and LST files.
+    Recursively find all Markdown files and build a look up structure so
+    that all of the relative links (both hyperlinks and image links)
+    can be validated. That is, the links should point to a file in the
+    system (an image, a markdown or something else).
 
     # Usage
 
@@ -88,7 +91,6 @@ def validate(*args, **kwargs):
     $ docs validate /home/troy/repositories/documentation/aegis.documentation.sphinx/docs/source
 
     """
-    # config = args[0].obj["cfg"]
 
     ctx = args[0]
 

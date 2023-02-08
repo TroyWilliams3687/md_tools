@@ -13,8 +13,9 @@
 # -----------
 
 """
-`stats` provides a pretty accurate word count using a PANDOC LUA script
-and the AST representation.
+`stats` provides an estimated word count across all of the markdown
+files.
+
 """
 
 # ------------
@@ -57,8 +58,8 @@ from .markdown import (
 )
 def stats(*args, **kwargs):
     """
-    Given the `search` path, recursively find all the Markdown files and
-    perform a word count return the stats.
+    Given the `root` path, recursively find all the Markdown files and
+    estimate the total word count.
 
     ```
     Started  - 2021-05-19 13:57:30.698969
@@ -72,7 +73,7 @@ def stats(*args, **kwargs):
 
     # Usage
 
-    $ docs stats /home/troy/repositories/documentation/aegis.documentation.sphinx/docs/source
+    $ docs stats ./doc/root
 
     """
 
