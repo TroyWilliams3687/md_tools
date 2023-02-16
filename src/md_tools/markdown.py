@@ -482,7 +482,7 @@ def validate_markdown_relative_links(
                 for asset in assets[match_path.name]:
                     potential_target = asset
 
-                    if match_path == potential_target:
+                    if match_path == potential_target or match_path == Path("/") / potential_target:
                         break  # found a match
 
                 else:
