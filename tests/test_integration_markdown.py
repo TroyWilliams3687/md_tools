@@ -783,7 +783,7 @@ results.append(
 content.append(
     (
         "[test](test.txt)",
-        "![image](image.png)",
+        "![image](/image.png)",
         "[test](test.txt) and [test2](https://www.google.com)",
     )
 )
@@ -815,14 +815,14 @@ results.append(
             ValidationIssue(
                 line=LinkLineNumber(
                     number=1,
-                    line="![image](image.png)",
+                    line="![image](/image.png)",
                     matches=[
                         MarkdownImageLinkRuleResult(
-                            full="![image](image.png)", text="image", url="image.png"
+                            full="![image](/image.png)", text="image", url="/image.png"
                         )
                     ],
                 ),
-                issue=Path("image.png"),
+                issue=Path("/image.png"),
             ),
             ValidationIssue(
                 line=LinkLineNumber(

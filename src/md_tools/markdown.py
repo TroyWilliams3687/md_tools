@@ -596,7 +596,7 @@ def find_all_files(root_path: Path) -> dict:
 
     for filename in root_path.rglob("*"):
         # add the asset to the correct folder, making sure it is relative to the root folder
-        assets.setdefault(filename.name, []).append(filename.relative_to(root_path))
+        assets.setdefault(filename.name, []).append(Path("/") / filename.relative_to(root_path))
 
     return assets
 
