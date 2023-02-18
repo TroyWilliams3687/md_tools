@@ -117,7 +117,7 @@ def validate(*args, **kwargs):
     issue_count = 0
 
     for doc in markdown_files:
-        results = validate_markdown_relative_links(doc, assets)
+        results = validate_markdown_relative_links(doc, assets, root_path)
 
         if "incorrect" in results or "missing" in results:
             console.print(

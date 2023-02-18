@@ -450,13 +450,15 @@ class ValidationIssue(NamedTuple):
 def validate_markdown_relative_links(
     doc: MarkdownDocument,
     assets: dict[str, Path],
+    root: Path,
 ) -> dict:
     """
     Validate all the relative links within the markdown document by
     comparing the files against the assets dictionary.
 
-    doc - the markdown document to analyze
-    assets - the dictionary that maps the file name with the discovered locations
+    - doc - the markdown document to analyze
+    - assets - the dictionary that maps the file name with the discovered locations
+    - root_path - the root path where the assets and doc are located
 
     # Return
 
@@ -477,11 +479,14 @@ def validate_markdown_relative_links(
     for rl in doc.all_relative_links:
         for link in rl.matches:
 
-            if link.url.startswith("/"):
-                match_path = Path(link.url)
+            match_path = Path(link.url)
 
-            else:
-                match_path = Path("/") / Path(link.url)
+            if not link.url.startswith("/"):
+
+                # This is a relative URL, attach it to the document URL
+
+                match_path = doc.filename.parent / Path(link.url)
+                match_path = Path("/") / match_path.resolve().relative_to(root)
 
             if match_path.name in assets:
 
@@ -497,7 +502,7 @@ def validate_markdown_relative_links(
                     results.setdefault("incorrect", []).append(
                         ValidationIssue(
                             line=rl,
-                            issue=match_path,
+                            issue=Path(link.url),
                         )
                     )
 
