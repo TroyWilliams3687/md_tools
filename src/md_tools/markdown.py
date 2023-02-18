@@ -399,7 +399,7 @@ class MarkdownDocument:
         A Sequence of all lines that contain Markdown hyperlinks.
         """
 
-        return list(markdown_links(self.contents))
+        return list(markdown_links(self.contents, start=1))
 
     @cached_property
     def relative_links(self) -> Optional[Sequence[LinkLineNumber]]:
@@ -407,7 +407,7 @@ class MarkdownDocument:
         A Sequence of all lines that contain Markdown relative hyperlinks.
         """
 
-        return list(markdown_relative_links(self.contents))
+        return list(markdown_relative_links(self.contents, start=1))
 
     @cached_property
     def image_links(self) -> Optional[Sequence[LinkLineNumber]]:
@@ -415,7 +415,7 @@ class MarkdownDocument:
         A Sequence of all lines that contain Markdown image links.
         """
 
-        return list(markdown_image_links(self.contents))
+        return list(markdown_image_links(self.contents, start=1))
 
     @cached_property
     def all_links(self) -> Optional[Sequence[LinkLineNumber]]:
@@ -424,7 +424,7 @@ class MarkdownDocument:
         Markdown image links.
         """
 
-        return list(markdown_all_links(self.contents))
+        return list(markdown_all_links(self.contents, start=1))
 
     @cached_property
     def all_relative_links(self) -> Optional[Sequence[LinkLineNumber]]:
@@ -434,7 +434,7 @@ class MarkdownDocument:
         are in the Sequence.
         """
 
-        return list(markdown_all_relative_links(self.contents))
+        return list(markdown_all_relative_links(self.contents,start=1))
 
 
 class ValidationIssue(NamedTuple):
@@ -450,7 +450,7 @@ class ValidationIssue(NamedTuple):
 def validate_markdown_relative_links(
     doc: MarkdownDocument,
     assets: dict[str, Path],
-    root: Path,
+    root: Optional[Path]=None,
 ) -> dict:
     """
     Validate all the relative links within the markdown document by
@@ -481,7 +481,7 @@ def validate_markdown_relative_links(
 
             match_path = Path(link.url)
 
-            if not link.url.startswith("/"):
+            if not link.url.startswith("/") and root:
 
                 # This is a relative URL, attach it to the document URL
 

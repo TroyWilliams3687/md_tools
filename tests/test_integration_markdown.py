@@ -474,7 +474,7 @@ data = []
 data.append(
     [
         LinkLineNumber(
-            8,
+            9,
             "3 Test 1 - basic line [here](https://www.bluebill.net)",
             [
                 MarkdownLinkRuleResult(
@@ -485,7 +485,7 @@ data.append(
             ],
         ),
         LinkLineNumber(
-            10,
+            11,
             "5 Test 1 - [basic](./test.md) line",
             [
                 MarkdownLinkRuleResult(
@@ -496,7 +496,7 @@ data.append(
             ],
         ),
         LinkLineNumber(
-            15,
+            16,
             "# [web](http://www.python.org) and [local](../md.txt)",
             [
                 MarkdownLinkRuleResult(
@@ -550,7 +550,7 @@ data = []
 data.append(
     [
         LinkLineNumber(
-            1,
+            2,
             "Here is an image: ![relative image](../image1.png) and ![absolute](https://www.find.com/image.png)",
             [
                 MarkdownLinkRuleResult(
@@ -583,7 +583,7 @@ data = []
 data.append(
     [
         LinkLineNumber(
-            1,
+            2,
             "Here is an image: ![relative image](../image1.png) and ![absolute](https://www.find.com/image.png)",
             [
                 MarkdownLinkRuleResult(
@@ -599,7 +599,7 @@ data.append(
             ],
         ),
         LinkLineNumber(
-            8,
+            9,
             "3 Test 1 - basic line [here](https://www.bluebill.net)",
             [
                 MarkdownLinkRuleResult(
@@ -610,7 +610,7 @@ data.append(
             ],
         ),
         LinkLineNumber(
-            10,
+            11,
             "5 Test 1 - [basic](./test.md) line",
             [
                 MarkdownLinkRuleResult(
@@ -621,7 +621,7 @@ data.append(
             ],
         ),
         LinkLineNumber(
-            15,
+            16,
             "# [web](http://www.python.org) and [local](../md.txt)",
             [
                 MarkdownLinkRuleResult(
@@ -654,7 +654,7 @@ data = []
 data.append(
     [
         LinkLineNumber(
-            1,
+            2,
             "Here is an image: ![relative image](../image1.png) and ![absolute](https://www.find.com/image.png)",
             [
                 MarkdownLinkRuleResult(
@@ -665,7 +665,7 @@ data.append(
             ],
         ),
         LinkLineNumber(
-            10,
+            11,
             "5 Test 1 - [basic](./test.md) line",
             [
                 MarkdownLinkRuleResult(
@@ -676,7 +676,7 @@ data.append(
             ],
         ),
         LinkLineNumber(
-            15,
+            16,
             "# [web](http://www.python.org) and [local](../md.txt)",
             [
                 MarkdownLinkRuleResult(
@@ -723,16 +723,7 @@ assets.append(
 
 # Nothing missing or incorrect
 results.append(
-    {
-    'line_count': 3,
-    'incorrect': [
-
-        ValidationIssue(line=LinkLineNumber(number=0, line='[test](test.txt)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt')),
-        ValidationIssue(line=LinkLineNumber(number=1, line='![image](image.png)', matches=[MarkdownImageLinkRuleResult(full='![image](image.png)', text='image', url='image.png')]), issue=Path('/image.png')),
-        ValidationIssue(line=LinkLineNumber(number=2, line='[test](test.txt) and [test2](https://www.google.com)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt'))
-    ]
-    }
-
+    {'line_count': 3}
 )
 
 
@@ -752,17 +743,7 @@ assets.append(
 
 # missing files i.e. the name didn't appear in the assets
 results.append(
-    {
-    'line_count': 3,
-    'missing': [
-        ValidationIssue(line=LinkLineNumber(number=0, line='[test](test.txt)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt')),
-        ValidationIssue(line=LinkLineNumber(number=2, line='[test](test.txt) and [test2](https://www.google.com)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt'))
-    ],
-    'incorrect': [
-            ValidationIssue(line=LinkLineNumber(number=1, line='![image](image.png)', matches=[MarkdownImageLinkRuleResult(full='![image](image.png)', text='image', url='image.png')]), issue=Path('/image.png'))
-    ]
-    }
-
+    {'line_count': 3, 'missing': [ValidationIssue(line=LinkLineNumber(number=1, line='[test](test.txt)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('test.txt')), ValidationIssue(line=LinkLineNumber(number=3, line='[test](test.txt) and [test2](https://www.google.com)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('test.txt'))]}
 )
 
 
@@ -783,14 +764,7 @@ assets.append(
 
 # the files appear in assets, but not in the correct spot
 results.append(
-    {
-    'line_count': 3,
-    'incorrect': [
-        ValidationIssue(line=LinkLineNumber(number=0, line='[test](test.txt)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt')),
-        ValidationIssue(line=LinkLineNumber(number=1, line='![image](/image.png)', matches=[MarkdownImageLinkRuleResult(full='![image](/image.png)', text='image', url='/image.png')]), issue=Path('/image.png')),
-        ValidationIssue(line=LinkLineNumber(number=2, line='[test](test.txt) and [test2](https://www.google.com)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt'))]
-    }
-
+    {'line_count': 3, 'incorrect': [ValidationIssue(line=LinkLineNumber(number=1, line='[test](test.txt)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('test.txt')), ValidationIssue(line=LinkLineNumber(number=2, line='![image](/image.png)', matches=[MarkdownImageLinkRuleResult(full='![image](/image.png)', text='image', url='/image.png')]), issue=Path('/image.png')), ValidationIssue(line=LinkLineNumber(number=3, line='[test](test.txt) and [test2](https://www.google.com)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('test.txt'))]}
 )
 
 
