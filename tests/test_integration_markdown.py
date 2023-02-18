@@ -724,10 +724,15 @@ assets.append(
 # Nothing missing or incorrect
 results.append(
     {
-        "line_count": 3,
-        # "incorrect":[],
-        # "missing":[],
+    'line_count': 3,
+    'incorrect': [
+
+        ValidationIssue(line=LinkLineNumber(number=0, line='[test](test.txt)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt')),
+        ValidationIssue(line=LinkLineNumber(number=1, line='![image](image.png)', matches=[MarkdownImageLinkRuleResult(full='![image](image.png)', text='image', url='image.png')]), issue=Path('/image.png')),
+        ValidationIssue(line=LinkLineNumber(number=2, line='[test](test.txt) and [test2](https://www.google.com)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt'))
+    ]
     }
+
 )
 
 
@@ -748,35 +753,16 @@ assets.append(
 # missing files i.e. the name didn't appear in the assets
 results.append(
     {
-        "line_count": 3,
-        # "incorrect":[],
-        "missing": [
-            ValidationIssue(
-                line=LinkLineNumber(
-                    number=0,
-                    line="[test](test.txt)",
-                    matches=[
-                        MarkdownLinkRuleResult(
-                            full="[test](test.txt)", text="test", url="test.txt"
-                        )
-                    ],
-                ),
-                issue=Path("test.txt"),
-            ),
-            ValidationIssue(
-                line=LinkLineNumber(
-                    number=2,
-                    line="[test](test.txt) and [test2](https://www.google.com)",
-                    matches=[
-                        MarkdownLinkRuleResult(
-                            full="[test](test.txt)", text="test", url="test.txt"
-                        )
-                    ],
-                ),
-                issue=Path("test.txt"),
-            ),
-        ],
+    'line_count': 3,
+    'missing': [
+        ValidationIssue(line=LinkLineNumber(number=0, line='[test](test.txt)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt')),
+        ValidationIssue(line=LinkLineNumber(number=2, line='[test](test.txt) and [test2](https://www.google.com)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt'))
+    ],
+    'incorrect': [
+            ValidationIssue(line=LinkLineNumber(number=1, line='![image](image.png)', matches=[MarkdownImageLinkRuleResult(full='![image](image.png)', text='image', url='image.png')]), issue=Path('/image.png'))
+    ]
     }
+
 )
 
 
@@ -798,46 +784,13 @@ assets.append(
 # the files appear in assets, but not in the correct spot
 results.append(
     {
-        "line_count": 3,
-        "incorrect": [
-            ValidationIssue(
-                line=LinkLineNumber(
-                    number=0,
-                    line="[test](test.txt)",
-                    matches=[
-                        MarkdownLinkRuleResult(
-                            full="[test](test.txt)", text="test", url="test.txt"
-                        )
-                    ],
-                ),
-                issue=Path("test.txt"),
-            ),
-            ValidationIssue(
-                line=LinkLineNumber(
-                    number=1,
-                    line="![image](/image.png)",
-                    matches=[
-                        MarkdownImageLinkRuleResult(
-                            full="![image](/image.png)", text="image", url="/image.png"
-                        )
-                    ],
-                ),
-                issue=Path("/image.png"),
-            ),
-            ValidationIssue(
-                line=LinkLineNumber(
-                    number=2,
-                    line="[test](test.txt) and [test2](https://www.google.com)",
-                    matches=[
-                        MarkdownLinkRuleResult(
-                            full="[test](test.txt)", text="test", url="test.txt"
-                        )
-                    ],
-                ),
-                issue=Path("test.txt"),
-            ),
-        ],
+    'line_count': 3,
+    'incorrect': [
+        ValidationIssue(line=LinkLineNumber(number=0, line='[test](test.txt)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt')),
+        ValidationIssue(line=LinkLineNumber(number=1, line='![image](/image.png)', matches=[MarkdownImageLinkRuleResult(full='![image](/image.png)', text='image', url='/image.png')]), issue=Path('/image.png')),
+        ValidationIssue(line=LinkLineNumber(number=2, line='[test](test.txt) and [test2](https://www.google.com)', matches=[MarkdownLinkRuleResult(full='[test](test.txt)', text='test', url='test.txt')]), issue=Path('/test.txt'))]
     }
+
 )
 
 

@@ -476,19 +476,22 @@ def validate_markdown_relative_links(
 
     for rl in doc.all_relative_links:
         for link in rl.matches:
-            match_path = Path(link.url)
+
+            if link.url.startswith("/"):
+                match_path = Path(link.url)
+
+            else:
+                match_path = Path("/") / Path(link.url)
 
             if match_path.name in assets:
-                for asset in assets[match_path.name]:
-                    potential_target = Path("/") / asset
 
-                    if match_path == potential_target:
+                for asset in assets[match_path.name]:
+
+                    if match_path == asset:
                         break  # found a match
 
-
-
                 else:
-                    # now matches - we know the file name exists, but is
+                    # no matches - we know the file name exists, but is
                     # pointing to the wrong one
 
                     results.setdefault("incorrect", []).append(
