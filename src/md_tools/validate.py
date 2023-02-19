@@ -39,6 +39,7 @@ from .markdown import (
     validate_markdown_relative_links,
     find_markdown_files,
     find_all_files,
+    ValidationIssue,
 )
 
 # -------------
@@ -66,6 +67,30 @@ def print_doc(doc: MarkdownDocument) -> None:
                 console.print(f"  - {i} Link -> [yellow]{m.full}[/yellow]")
 
 
+def print_incorrect_line(incorrect:ValidationIssue) -> None:
+    """
+    Given the incorrect result, print it out to console along with the line number and the issue.
+    """
+
+    console.print(
+        f"Line: {incorrect.line.number + 1}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]"
+    )
+
+def print_missing_line(missing:ValidationIssue) -> None:
+
+    console.print(
+        f"Line: {missing.line.number + 1}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]"
+    )
+
+def print_potential_asset_matches(incorrect:ValidationIssue, assets:dict[str, Path]) -> None:
+    """
+    Given an incorrect result, print out all potential matching assets.
+    """
+
+    for asset in assets[incorrect.issue.name]:
+        console.print(f"    [cyan]OPTIONS -> {asset} [/cyan]")
+
+
 @click.command("validate")
 @click.pass_context
 @click.argument(
@@ -76,6 +101,11 @@ def print_doc(doc: MarkdownDocument) -> None:
         readable=True,
         path_type=Path,
     ),
+)
+@click.option(
+    "--repair",
+    is_flag=True,
+    help="Repair broken links. It will only repair links that are easy to fix (i.e. only one match in the system).",
 )
 def validate(*args, **kwargs):
     """
@@ -96,6 +126,8 @@ def validate(*args, **kwargs):
 
     root_path = kwargs["root_path"].expanduser().resolve()
 
+    repair_links = kwargs["repair"] if "repair" in kwargs else False
+
     console.print(f"Searching: {root_path}")
 
     if root_path.is_file():
@@ -115,8 +147,13 @@ def validate(*args, **kwargs):
     console.print()
 
     issue_count = 0
+    repaired_file_count = 0
+    defective_file_count = 0
 
     for doc in markdown_files:
+
+        repaired_links = False
+
         results = validate_markdown_relative_links(doc, assets, root_path)
 
         if "incorrect" in results or "missing" in results:
@@ -125,21 +162,53 @@ def validate(*args, **kwargs):
             )
             console.print()
 
+            defective_file_count += 1
+
             if "incorrect" in results:
                 # The filename exists as an asset, just the paths don't
                 # line up
 
                 issue_count += len(results["incorrect"])
 
-                for incorrect in results["incorrect"]:
-                    console.print(
-                        f"Line: {incorrect.line.number + 1}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]"
-                    )
+                if repair_links:
+                    # ---
+                    # Attempt to Repair Links
 
-                    for asset in assets[incorrect.issue.name]:
-                        console.print(f"    [cyan]OPTIONS -> {asset} [/cyan]")
+                    # If there is an incorrect result and there is only
+                    # one asset that it could be, replace the asset set
+                    # a flag so that the document contents are written
+                    # to file. We'll need to set a flag to write the
+                    # contents of the file after all repairs are made
 
-                    console.print()
+                    for incorrect in results["incorrect"]:
+
+                        if len(assets[incorrect.issue.name]) == 1:
+                            asset = assets[incorrect.issue.name][0]
+
+                            print_incorrect_line(incorrect)
+                            console.print(f"[yellow]Replacing with: {asset} [/yellow]")
+
+                            # f"Line: {incorrect.line.number + 1}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]"
+
+                            new_line = incorrect.line.line.replace(str(incorrect.issue), str(asset))
+                            doc.contents[incorrect.line.number] = new_line
+                            repaired_links = True
+
+                            console.print()
+
+                        else:
+                            print_incorrect_line(incorrect)
+                            print_potential_asset_matches(incorrect, assets)
+                            console.print('[red]Cannot Repair - too many choices! Manual intervention required.[/red]')
+                            console.print()
+
+                else:
+
+                    for incorrect in results["incorrect"]:
+                        print_incorrect_line(incorrect)
+                        print_potential_asset_matches(incorrect, assets)
+                        console.print()
+
 
             if "missing" in results:
                 # filename doesn't exist within the asset dictionary.
@@ -147,15 +216,16 @@ def validate(*args, **kwargs):
                 issue_count += len(results["missing"])
 
                 for missing in results["missing"]:
-                    console.print(
-                        f"Line: {missing.line.number + 1}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]"
-                    )
+                    print_missing_line(missing)
+
+            if repair_links:
+                doc.filename.write_text("\n".join(doc.contents))
+                repaired_file_count += 1
+
+                console.print(f"[green]Changes saved to `{doc.filename.name}`[/green]")
 
             console.print()
 
-    if issue_count == 0:
-        console.print(":+1: [green]No Issues Detected![/green]")
-        console.print()
 
     # stop the clock
     search_end_time = datetime.now()
@@ -172,6 +242,19 @@ def validate(*args, **kwargs):
 
     console.print(f"[cyan]Documents Found:    {len(assets):>{width}}[/cyan]")
     console.print(f"[cyan]Markdown Documents: {len(markdown_files):>{width}}[/cyan]")
+
+    if issue_count == 0:
+        console.print(":+1: [green]No Issues Detected![/green]")
+        console.print()
+
+    if defective_file_count > 0:
+        console.print(f"[red]Defective files: {defective_file_count}[/red]")
+        console.print()
+
+    if repaired_file_count > 0:
+        console.print(f":+1: [green]Repaired {repaired_file_count} files[/green]")
+        console.print()
+
     console.print()
     console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
     console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
