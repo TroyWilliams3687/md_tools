@@ -133,7 +133,7 @@ def validate(*args, **kwargs):
 
                 for incorrect in results["incorrect"]:
                     console.print(
-                        f"Line: {incorrect.line.number}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]"
+                        f"Line: {incorrect.line.number + 1}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]"
                     )
 
                     for asset in assets[incorrect.issue.name]:
@@ -148,7 +148,7 @@ def validate(*args, **kwargs):
 
                 for missing in results["missing"]:
                     console.print(
-                        f"Line: {missing.line.number}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]"
+                        f"Line: {missing.line.number + 1}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]"
                     )
 
             console.print()
