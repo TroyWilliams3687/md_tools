@@ -615,7 +615,6 @@ def reverse_relative_links(
     md_files: Sequence[MarkdownDocument], root: Path = None
 ) -> dict:
     """
-
     Given a sequence of MarkdownDocument objects, construct a dictionary
     keyed by the filename of the document storing the list of relative
     links within the document.

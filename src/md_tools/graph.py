@@ -40,6 +40,7 @@ console = Console()
 from .markdown import (
     MarkdownDocument,
     find_markdown_files,
+    find_all_files,
     reverse_relative_links,
 )
 
@@ -88,7 +89,7 @@ def construct_edges(md_links, root=None):
 @click.command("graph")
 @click.pass_context
 @click.argument(
-    "root_path",
+    "root",
     type=click.Path(
         exists=True,
         dir_okay=True,
@@ -96,18 +97,34 @@ def construct_edges(md_links, root=None):
         path_type=Path,
     ),
 )
+@click.argument(
+    "document",
+    type=str,
+)
 def graph(*args, **kwargs):
     """
+    Given the root folder and a document as the starting point,
+    construct the DAG.
 
-    Show a network graph connecting all of the documents together.
+    Specify the root folder and the relative path to the starting document.
+
+    NOTE: The relative path to the starting document, should be that. If the source folder is:
+
+    /path/to/src
+
+    and the document is
+
+    /path/to/src/documents/index.md
+
+    the document should be: documents/index.md
 
     # Usage
 
-    $ docs graph /home/troy/repositories/documentation/aegis.documentation.sphinx/docs/source
+    $ docs graph /home/troy/repositories/documentation/aegis.documentation.sphinx/docs/source index.md
 
     """
 
-    root_path = kwargs["root_path"].expanduser().resolve()
+    root_path = kwargs["root"].expanduser().resolve()
 
     console.print(f"Searching: {root_path}")
 
@@ -115,58 +132,99 @@ def graph(*args, **kwargs):
         console.print("[red]Root path has to be a directory.[/red]")
         ctx.abort()
 
+    document  = Path(kwargs["document"])
+
     search_start_time = datetime.now()
 
-    markdown_files = find_markdown_files(root_path)
+    markdown_files: set[MarkdownDocument] = find_markdown_files(root_path)
 
     # To construct the graph, we only need the relative paths to the
     # Markdown files stored in an efficient structure
 
-    md_links = reverse_relative_links(markdown_files, root=root_path)
+    # the myst structured markdown files have the concept of toctree
+    # blocks (```{toctree}), these can have the file links. need to be
+    # able to find these as well.
 
-    edges = construct_edges(md_links)
+    # add a parser that looks for toctree blocks and extracts the files
+    # https://sphinx-doc-zh.readthedocs.io/en/latest/markup/toctree.html
 
-    # At this point we have edges, we can construct the graph
-    console.print("Constructing DAG...")
+    # basically we need a toctree parser or variable added to the
+    # MarkdownDocument object
+    # all it does is contain the tuple of things that are not keywords
+    # can contain:
+    # - absolute links <- to the source directory
+    # - relative links <- to the document
+    # - glob matches
 
-    # construct the DAG
-    G = nx.DiGraph()
+    # would need a method that takes the markdown object and the
+    # contents of the toctree and adds links
 
-    G.add_edges_from(edges)
+    # md_links = reverse_relative_links(markdown_files, root=root_path)
 
-    console.print(f"Total Nodes:  {len(G)}")
-    console.print(f"Degree:       {len(G.degree)}")
-    console.print(f"Degree (in):  {len(G.in_degree)}")
-    console.print(f"Degree (out): {len(G.out_degree)}")
+    # if document in md_links:
+    #     console.print(document)
 
-    sub_graph = create_sub_graph(G, incoming_limit=1, outgoing_limit=0)
+    # ----
+    # We want to build the DAG from the document
 
-    # -----
-    # Plot the Graph
 
-    console.print("Plotting Graph...")
 
-    fig = plt.figure(figsize=(15, 10))
-    ax = fig.add_axes((0, 0, 1, 1))
 
-    g_plot = sub_graph
 
-    # https://networkx.org/documentation/stable//reference/drawing.html#module-networkx.drawing.layout
-    # Other graph options
-    # kamada_kawai_layout, # this works well <- requires scipy to be installed
-    # shell_layout
-    # circular_layout
-    # planar_layout
-    # spiral_layout
-    # spring_layout
 
-    nx.draw_networkx(
-        g_plot,
-        ax=ax,
-        pos=nx.spring_layout(g_plot),
-        with_labels=True,
-        font_size=10,
-        font_weight="bold",
-    )
 
-    plt.show()
+
+    # # --------
+    # markdown_files = find_markdown_files(root_path)
+
+    # # To construct the graph, we only need the relative paths to the
+    # # Markdown files stored in an efficient structure
+
+    # md_links = reverse_relative_links(markdown_files, root=root_path)
+
+    # edges = construct_edges(md_links)
+
+    # # At this point we have edges, we can construct the graph
+    # console.print("Constructing DAG...")
+
+    # # construct the DAG
+    # G = nx.DiGraph()
+
+    # G.add_edges_from(edges)
+
+    # console.print(f"Total Nodes:  {len(G)}")
+    # console.print(f"Degree:       {len(G.degree)}")
+    # console.print(f"Degree (in):  {len(G.in_degree)}")
+    # console.print(f"Degree (out): {len(G.out_degree)}")
+
+    # sub_graph = create_sub_graph(G, incoming_limit=1, outgoing_limit=0)
+
+    # # -----
+    # # Plot the Graph
+
+    # console.print("Plotting Graph...")
+
+    # fig = plt.figure(figsize=(15, 10))
+    # ax = fig.add_axes((0, 0, 1, 1))
+
+    # g_plot = sub_graph
+
+    # # https://networkx.org/documentation/stable//reference/drawing.html#module-networkx.drawing.layout
+    # # Other graph options
+    # # kamada_kawai_layout, # this works well <- requires scipy to be installed
+    # # shell_layout
+    # # circular_layout
+    # # planar_layout
+    # # spiral_layout
+    # # spring_layout
+
+    # nx.draw_networkx(
+    #     g_plot,
+    #     ax=ax,
+    #     pos=nx.spring_layout(g_plot),
+    #     with_labels=True,
+    #     font_size=10,
+    #     font_weight="bold",
+    # )
+
+    # plt.show()
