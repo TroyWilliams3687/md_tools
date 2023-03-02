@@ -50,59 +50,6 @@ from .markdown import (
 
 
 
-# class MDFence:
-#     """
-#     This object keeps track of whether we are iterating through a fence
-#     block(code block or YAML block) while iterating through a markdown
-#     string.
-
-#     # Usage
-
-#     ```
-#     ignore_block = MDFence()
-
-#     for line in contents:
-
-#         if ignore_block.in_block(line):
-#             continue
-
-#         # The line isn't part of a code fence or YAML block. Process it.
-#     ```
-
-#     """
-
-#     def __init__(self):
-#         self.fence_types = ("code", "yaml")
-
-#         rules = (CodeFenceRule(), YamlBlockRule())
-#         self.rules = dict(zip(self.fence_types, rules))
-
-#         self.in_fence = dict(zip(self.fence_types, (False, False)))
-
-#     def __call__(self, line: str = None) -> bool:
-#         # Are we in a block?
-#         for bt in self.fence_types:
-#             if self.in_fence[bt]:
-#                 # Are we at the end?
-#                 if self.rules[bt](line):
-#                     self.in_fence[bt] = False
-
-#                 # We are at the last line of the fence block, but caller
-#                 # would consider this line still in the block. We return
-#                 # True, but we have set the flag to false
-
-#                 return True
-
-#         # Have we entered a fence block?
-#         for bt in self.fence_types:
-#             if self.rules[bt](line):
-#                 self.in_fence[bt] = True
-
-#                 return True
-
-#         # We are not in a fence block
-#         return False
-
 class DirectiveFence:
     """
     This object keeps track of whether we are iterating through a code
@@ -165,6 +112,55 @@ class DirectiveFence:
                 self.in_fence = True
 
                 return True if not self.exclude_tails else False
+
+        # We are not in a directive block
+        return False
+
+class YAMLFence:
+    """
+    This object keeps track of whether we are iterating through a YAML
+    fence block while iterating through a markdown strings.
+
+
+    # Usage
+
+    ```
+    ignore_block = YAMLFence()
+
+    for line in contents:
+
+        if ignore_block.in_block(line):
+            continue
+
+        # The line isn't part of a code fence. Process it.
+    ```
+
+    """
+
+    def __init__(self, **kwargs):
+
+        self.is_yaml_fence = YamlBlockRule()
+        self.in_fence = False
+
+    def __call__(self, line: str = None) -> bool:
+        # Are we in a block?
+
+        if self.in_fence:
+
+            # Are we at the end?
+            if self.is_yaml_fence(line):
+                self.in_fence = False
+
+            # We are at the last line of the fence block, but caller
+            # would consider this line still in the block. We return
+            # True, but we have set the flag to false
+
+            return True
+
+        # Have we entered a fence block?
+        if self.is_yaml_fence(line):
+            self.in_fence = True
+            return True
 
         # We are not in a directive block
         return False
@@ -233,12 +229,16 @@ def inside_toctree(
     if lines is None:
         return  # this is effectively raising a StopIteration
 
-    in_block = DirectiveFence(exclude_tails=True)
+    in_directive_block = DirectiveFence(exclude_tails=True)
+    in_yaml_block = YAMLFence()
 
     for i, line in enumerate(lines, start=start):
-        if in_block(line):
+
+        if in_directive_block(line):
 
             # Are we in a YAML block
+            if in_yaml_block(line):
+                continue
 
             # Check for the Short Hand Variable keys
             if line.strip().startswith(":"):

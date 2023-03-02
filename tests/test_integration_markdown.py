@@ -870,46 +870,83 @@ content = []
 results = []
 
 
-content.append(
-    [
-        "This is a line",
-        "This is a line",
-        "This is a line",
-        "```{toctree}",
-        "*",
-        "index.md",
-        "index_test.md",
-        "",
-        "",
-        "```",
-        "",
-        "``` python",
-        "import x",
-        "x.show()",
-        "print('Here We go...')",
-        "",
-        "",
-        "```",
-    ]
-)
+# content.append(
+#     [
+#         "This is a line",
+#         "This is a line",
+#         "This is a line",
+#         "```{toctree}",
+#         "*",
+#         "index.md",
+#         "index_test.md",
+#         "",
+#         "",
+#         "```",
+#         "",
+#         "``` python",
+#         "import x",
+#         "x.show()",
+#         "print('Here We go...')",
+#         "",
+#         "",
+#         "```",
+#     ]
+# )
 
-results.append(
-    [
-    LineNumber(number=4, line='*'),
-    LineNumber(number=5, line='index.md'),
-    LineNumber(number=6, line='index_test.md'),
-    LineNumber(number=7, line=''),
-    LineNumber(number=8, line=''),
-    ]
-)
+# results.append(
+#     [
+#     LineNumber(number=4, line='*'),
+#     LineNumber(number=5, line='index.md'),
+#     LineNumber(number=6, line='index_test.md'),
+#     LineNumber(number=7, line=''),
+#     LineNumber(number=8, line=''),
+#     ]
+# )
+
+# content.append(
+#     [
+#         "This is a line",
+#         "This is a line",
+#         "```    {toctree}    ",
+#         ":lineno-start: 10",
+#         ":emphasize-lines: 1, 3",
+#         "*",
+#         "index.md",
+#         "index_test.md",
+#         "",
+#         "",
+#         "```",
+#         "",
+#         "``` python",
+#         "import x",
+#         "x.show()",
+#         "",
+#         "```",
+#     ]
+# )
+
+# results.append(
+#     [
+#     LineNumber(number=5, line='*'),
+#     LineNumber(number=6, line='index.md'),
+#     LineNumber(number=7, line='index_test.md'),
+#     LineNumber(number=8, line=''),
+#     LineNumber(number=9, line='')
+#     ]
+# )
+
 
 content.append(
     [
         "This is a line",
         "This is a line",
         "```    {toctree}    ",
-        ":lineno-start: 10",
-        ":emphasize-lines: 1, 3",
+        "",
+        "",
+        "---",
+        "lineno-start: 10",
+        "emphasize-lines: 1, 3",
+        "---",
         "*",
         "index.md",
         "index_test.md",
@@ -927,18 +964,20 @@ content.append(
 
 results.append(
     [
-    LineNumber(number=5, line='*'),
-    LineNumber(number=6, line='index.md'),
-    LineNumber(number=7, line='index_test.md'),
-    LineNumber(number=8, line=''),
-    LineNumber(number=9, line='')
+    LineNumber(number=3, line=''),
+    LineNumber(number=4, line=''),
+    LineNumber(number=9, line='*'),
+    LineNumber(number=10, line='index.md'),
+    LineNumber(number=11, line='index_test.md'),
+    LineNumber(number=12, line=''),
+    LineNumber(number=13, line=''),
     ]
 )
 
 data = zip(content, results)
 
 @pytest.mark.parametrize("data", data)
-def test_count_all_words(tmp_path, data):
+def test_inside_toctree(tmp_path, data):
     contents, valid_results = data
 
     results = list(inside_toctree(contents))
