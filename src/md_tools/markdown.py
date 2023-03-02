@@ -118,7 +118,8 @@ class LineNumber(NamedTuple):
 
 
 def outside_fence(
-    lines: Optional[Sequence[str]] = None, start: int = 0
+    lines: Optional[Sequence[str]] = None,
+    start: int = 0,
 ) -> Generator[LineNumber, None, None]:
     """
     This method will iterate through the lines in the sequence, skipping

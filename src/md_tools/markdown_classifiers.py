@@ -463,13 +463,30 @@ class CodeFenceRule:
     """
 
     def __init__(self, **kwargs):
-        self._build_regex()
+        """
+
+        # kwargs
+
+        backticks_only - bool - indicates if we want to restrict the
+        code fence rule to backticks only.
+
+        """
+
+
         self._result = None
 
+        self._backticks_only = kwargs.get('backticks_only', False)
+
+        self._build_regex()
+
     def _build_regex(self):
-        self._regex = re.compile(
-            r"^\s*(?:`{3,}|~{3,})(?:\s*)(?P<arguments>.*?)(?:\s*)$",
-        )
+
+        expression = r"^\s*(?:`{3,}|~{3,})(?:\s*)(?P<arguments>.*?)(?:\s*)$"
+
+        if self._backticks_only:
+            expression = r"^\s*(?:`{3,})(?:\s*)(?P<arguments>.*?)(?:\s*)$"
+
+        self._regex = re.compile(expression)
 
     @property
     def result(self) -> Optional[CodeFenceRuleResult]:
