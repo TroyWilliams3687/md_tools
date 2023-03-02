@@ -428,7 +428,7 @@ class AbsoluteURLRule:
 class CodeFenceRuleResult(NamedTuple):
     """ """
 
-    infostring: Optional[str]
+    arguments: Optional[str]
 
 
 class CodeFenceRule:
@@ -440,7 +440,7 @@ class CodeFenceRule:
     - cannot be mixed backticks and tildes
     - can be as many leading spaces before the code fence
     - can have an info string following the code fence
-    - the infostring is the first word after the opening of the code
+    - the arguments are the words after the opening of the code
       fence
     - can have as many spaces as is needed after the code fence and
       before the info string
@@ -468,7 +468,7 @@ class CodeFenceRule:
 
     def _build_regex(self):
         self._regex = re.compile(
-            r"^\s*(?:`{3,}|~{3,})\s*(?P<infostring>\w*).*$",
+            r"^\s*(?:`{3,}|~{3,})(?:\s*)(?P<arguments>.*?)(?:\s*)$",
         )
 
     @property

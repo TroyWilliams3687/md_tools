@@ -616,7 +616,7 @@ data.append(
     (
         "```   bash hello world",
         CodeFenceRuleResult(
-            infostring="bash",
+            arguments="bash hello world",
         ),
     )
 )
@@ -625,7 +625,27 @@ data.append(
     (
         "``` bash hello world",
         CodeFenceRuleResult(
-            infostring="bash",
+            arguments="bash hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "```    {admonition}    This is my admonition",
+        CodeFenceRuleResult(
+            arguments="{admonition}    This is my admonition",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "```    {admonition}    This is my admonition      ",
+        CodeFenceRuleResult(
+            arguments="{admonition}    This is my admonition",
         ),
     )
 )
@@ -634,7 +654,7 @@ data.append(
     (
         "~~~",
         CodeFenceRuleResult(
-            infostring="",
+            arguments="",
         ),
     )
 )
@@ -643,7 +663,7 @@ data.append(
     (
         "     ~~~   ",
         CodeFenceRuleResult(
-            infostring="",
+            arguments="",
         ),
     )
 )
@@ -652,7 +672,7 @@ data.append(
     (
         "```",
         CodeFenceRuleResult(
-            infostring="",
+            arguments="",
         ),
     )
 )
@@ -662,7 +682,7 @@ data.append(
     (
         "```    ",
         CodeFenceRuleResult(
-            infostring="",
+            arguments="",
         ),
     )
 )
@@ -671,7 +691,7 @@ data.append(
     (
         "```    python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -680,7 +700,7 @@ data.append(
     (
         "     ```    python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -689,7 +709,7 @@ data.append(
     (
         "     ``````    python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -699,7 +719,7 @@ data.append(
     (
         "  ~~~~    python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -708,7 +728,7 @@ data.append(
     (
         "```````python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
