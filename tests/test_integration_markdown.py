@@ -37,8 +37,12 @@ from md_tools.markdown import (
     ValidationIssue,
     count_all_words,
     CountResult,
+    LineNumber,
 )
 
+from md_tools.myst import (
+    inside_toctree,
+)
 
 # ----
 # Test markdown_links
@@ -855,5 +859,88 @@ def test_count_all_words(tmp_path, data):
         documents.append(MarkdownDocument(p))
 
     results = count_all_words(documents)
+
+    assert valid_results == results
+
+# ----
+# Test inside_toctree
+
+
+content = []
+results = []
+
+
+content.append(
+    [
+        "This is a line",
+        "This is a line",
+        "This is a line",
+        "```{toctree}",
+        "*",
+        "index.md",
+        "index_test.md",
+        "",
+        "",
+        "```",
+        "",
+        "``` python",
+        "import x",
+        "x.show()",
+        "print('Here We go...')",
+        "",
+        "",
+        "```",
+    ]
+)
+
+results.append(
+    [
+    LineNumber(number=4, line='*'),
+    LineNumber(number=5, line='index.md'),
+    LineNumber(number=6, line='index_test.md'),
+    LineNumber(number=7, line=''),
+    LineNumber(number=8, line=''),
+    ]
+)
+
+content.append(
+    [
+        "This is a line",
+        "This is a line",
+        "```    {toctree}    ",
+        ":lineno-start: 10",
+        ":emphasize-lines: 1, 3",
+        "*",
+        "index.md",
+        "index_test.md",
+        "",
+        "",
+        "```",
+        "",
+        "``` python",
+        "import x",
+        "x.show()",
+        "",
+        "```",
+    ]
+)
+
+results.append(
+    [
+    LineNumber(number=5, line='*'),
+    LineNumber(number=6, line='index.md'),
+    LineNumber(number=7, line='index_test.md'),
+    LineNumber(number=8, line=''),
+    LineNumber(number=9, line='')
+    ]
+)
+
+data = zip(content, results)
+
+@pytest.mark.parametrize("data", data)
+def test_count_all_words(tmp_path, data):
+    contents, valid_results = data
+
+    results = list(inside_toctree(contents))
 
     assert valid_results == results

@@ -41,6 +41,10 @@ from .markdown_classifiers import (
     DirectiveStringRule,
 )
 
+from .markdown import (
+    LineNumber,
+)
+
 # -------------
 
 
@@ -99,16 +103,21 @@ from .markdown_classifiers import (
 #         # We are not in a fence block
 #         return False
 
-class DirectiveFenceRange:
+class DirectiveFence:
     """
     This object keeps track of whether we are iterating through a code
     fence block while iterating through a
     markdown strings.
 
+    # kwargs
+
+    exclude_tails - bool - indicates we want to ignore the start and end
+    of the block
+
     # Usage
 
     ```
-    ignore_block = MDFence()
+    ignore_block = DirectiveFence()
 
     for line in contents:
 
@@ -120,20 +129,26 @@ class DirectiveFenceRange:
 
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
-        self.rule = CodeFenceRule()
+        self.is_code_fence = CodeFenceRule(backticks_only=True)
+        self.is_directive = DirectiveStringRule()
+
         self.in_fence = False
-        self.argument = None
+
+        self.exclude_tails = kwargs.get("exclude_tails", False)
 
     def __call__(self, line: str = None) -> bool:
         # Are we in a block?
 
         if self.in_fence:
             # Are we at the end?
-            if self.rule(line):
+            if self.is_code_fence(line):
                 self.in_fence = False
-                self.argument = None
+
+                if self.exclude_tails:
+                    # we don't want the end markers of the block
+                    return False
 
             # We are at the last line of the fence block, but caller
             # would consider this line still in the block. We return
@@ -142,14 +157,18 @@ class DirectiveFenceRange:
             return True
 
         # Have we entered a fence block?
-        if self.rules(line):
-            self.in_fence = True
-            self.argument = self.rules.result.arguments
+        if self.is_code_fence(line):
+            result = self.is_code_fence.result
 
-            return True
+            if self.is_directive(result.arguments):
 
-        # We are not in a fence block
+                self.in_fence = True
+
+                return True if not self.exclude_tails else False
+
+        # We are not in a directive block
         return False
+
 
 
 def inside_toctree(
@@ -214,10 +233,15 @@ def inside_toctree(
     if lines is None:
         return  # this is effectively raising a StopIteration
 
-    in_block = CodeFenceRange()
+    in_block = DirectiveFence(exclude_tails=True)
 
     for i, line in enumerate(lines, start=start):
         if in_block(line):
-            continue
 
-        yield LineNumber(i, line)
+            # Are we in a YAML block
+
+            # Check for the Short Hand Variable keys
+            if line.strip().startswith(":"):
+                continue
+
+            yield LineNumber(i, line)
