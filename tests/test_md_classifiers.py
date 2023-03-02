@@ -30,6 +30,8 @@ from md_tools.markdown_classifiers import (
     CodeFenceRuleResult,
     CodeFenceRule,
     YamlBlockRule,
+    DirectiveStringRuleResult,
+    DirectiveStringRule,
 )
 
 # -------------
@@ -778,6 +780,129 @@ def test_YamlBlockRule_result(data):
     rule = YamlBlockRule()
 
     assert rule(value) == result
+
+
+# ----------------
+# Test - DirectiveStringRule
+
+data = []
+
+
+data.append(("   ```text", False))
+data.append(("```````python", False))
+data.append(("  ~~~~    python", False))
+data.append(("     ``````    python", False))
+data.append((" python", False))
+data.append(("   python", False))
+data.append(("python rocks", False))
+data.append(("admonition}    This is my admonition", False))
+data.append(("```{admonition}", False))
+
+
+data.append(("{admonition}",True))
+data.append(("{admonition}  hello world",True))
+data.append(("   {admonition}  hello world",True))
+data.append(("{admonition} This is my admonition",True))
+data.append(("    {admonition}    This is my admonition",True))
+
+
+
+@pytest.mark.parametrize("data", data)
+def test_DirectiveStringRule_match(data):
+    value, result = data
+    rule = DirectiveStringRule()
+
+    assert rule(value) == result
+
+
+data = []
+
+data.append(
+    (
+        "{admonition}",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="",
+        ),
+    )
+)
+
+data.append(
+    (
+        "{admonition}  hello world",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="hello world",
+        ),
+    )
+)
+
+data.append(
+    (
+        "   {admonition}  hello world",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "   {admonition}  hello world    ",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "{admonition}      hello world",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        " python",
+        None,
+    )
+)
+
+data.append(
+    (
+        " python  ",
+        None,
+    )
+)
+
+data.append(
+    (
+        "```{admonition}      hello world",
+        None,
+    )
+)
+
+
+@pytest.mark.parametrize("data", data)
+def test_DirectiveStringRule_result(data):
+    value, result = data
+    rule = DirectiveStringRule()
+
+    rule(value)
+    assert rule.result == result
+
+
+
+
 
 
 # # ----------
