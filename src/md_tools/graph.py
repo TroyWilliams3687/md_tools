@@ -146,11 +146,26 @@ def graph(*args, **kwargs):
 
     markdown_files: set[MarkdownDocument] = find_markdown_files(root_path)
 
+    # -----------
+    # Test code - should be implemented in the Markdown file itself
+
     md = MarkdownDocument(root_path / document)
 
     # console.print(md.filename)
     for line in inside_toctree(md.contents, directive_name="toctree"):
         console.print(line)
+
+        # - If the line is not empty, assume it points to a file
+        # - The file can be absolute or relative
+        # - an absolute file starts with a / while a relative file does not
+        # - The absolute file is absolute from the root_path
+        # - The relative file is relative to the document it is in
+
+        # - it supports globs, so *, index* or *.md works
+
+
+    # -----------
+
 
     # To construct the graph, we only need the relative paths to the
     # Markdown files stored in an efficient structure
