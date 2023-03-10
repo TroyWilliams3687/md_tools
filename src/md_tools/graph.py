@@ -20,8 +20,10 @@ between all of the documents in the system.
 # ------------
 # System Modules - Included with Python
 
+import time
+
 from pathlib import Path
-from datetime import datetime
+from datetime import timedelta
 
 # ------------
 # 3rd Party - From pip
@@ -42,6 +44,10 @@ from .markdown import (
     find_markdown_files,
     find_all_files,
     reverse_relative_links,
+)
+
+from md_tools.myst import (
+    inside_toctree,
 )
 
 # -------------
@@ -132,11 +138,19 @@ def graph(*args, **kwargs):
         console.print("[red]Root path has to be a directory.[/red]")
         ctx.abort()
 
-    document  = Path(kwargs["document"])
+    document = Path(kwargs["document"])
 
-    search_start_time = datetime.now()
+    # https://stackoverflow.com/a/49667269
+    # https://docs.python.org/3/library/time.html
+    search_start_time = time.monotonic_ns()
 
     markdown_files: set[MarkdownDocument] = find_markdown_files(root_path)
+
+    md = MarkdownDocument(root_path / document)
+
+    # console.print(md.filename)
+    for line in inside_toctree(md.contents, directive_name="toctree"):
+        console.print(line)
 
     # To construct the graph, we only need the relative paths to the
     # Markdown files stored in an efficient structure
@@ -167,12 +181,16 @@ def graph(*args, **kwargs):
     # ----
     # We want to build the DAG from the document
 
+    # stop the clock
+    search_end_time = time.monotonic_ns()
 
-
-
-
-
-
+    console.print()
+    # console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
+    # console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
+    console.print(
+        f"[cyan]Elapsed:  {timedelta(microseconds=(search_end_time - search_start_time)/1000)}[/cyan]"
+    )
+    console.print()
 
     # # --------
     # markdown_files = find_markdown_files(root_path)

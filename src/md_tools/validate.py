@@ -67,7 +67,7 @@ def print_doc(doc: MarkdownDocument) -> None:
                 console.print(f"  - {i} Link -> [yellow]{m.full}[/yellow]")
 
 
-def print_incorrect_line(incorrect:ValidationIssue) -> None:
+def print_incorrect_line(incorrect: ValidationIssue) -> None:
     """
     Given the incorrect result, print it out to console along with the line number and the issue.
     """
@@ -76,13 +76,16 @@ def print_incorrect_line(incorrect:ValidationIssue) -> None:
         f"Line: {incorrect.line.number + 1}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]"
     )
 
-def print_missing_line(missing:ValidationIssue) -> None:
 
+def print_missing_line(missing: ValidationIssue) -> None:
     console.print(
         f"Line: {missing.line.number + 1}: -> [red]MISSING:[/red] [cyan]{missing.issue}[/cyan]"
     )
 
-def print_potential_asset_matches(incorrect:ValidationIssue, assets:dict[str, Path]) -> None:
+
+def print_potential_asset_matches(
+    incorrect: ValidationIssue, assets: dict[str, Path]
+) -> None:
     """
     Given an incorrect result, print out all potential matching assets.
     """
@@ -151,7 +154,6 @@ def validate(*args, **kwargs):
     defective_file_count = 0
 
     for doc in markdown_files:
-
         repaired_links = False
 
         results = validate_markdown_relative_links(doc, assets, root_path)
@@ -181,7 +183,6 @@ def validate(*args, **kwargs):
                     # contents of the file after all repairs are made
 
                     for incorrect in results["incorrect"]:
-
                         if len(assets[incorrect.issue.name]) == 1:
                             asset = assets[incorrect.issue.name][0]
 
@@ -190,7 +191,9 @@ def validate(*args, **kwargs):
 
                             # f"Line: {incorrect.line.number + 1}: -> [yellow]INCORRECT:[/yellow] [cyan]{incorrect.issue}[/cyan]"
 
-                            new_line = incorrect.line.line.replace(str(incorrect.issue), str(asset))
+                            new_line = incorrect.line.line.replace(
+                                str(incorrect.issue), str(asset)
+                            )
                             doc.contents[incorrect.line.number] = new_line
                             repaired_links = True
 
@@ -199,16 +202,16 @@ def validate(*args, **kwargs):
                         else:
                             print_incorrect_line(incorrect)
                             print_potential_asset_matches(incorrect, assets)
-                            console.print('[red]Cannot Repair - too many choices! Manual intervention required.[/red]')
+                            console.print(
+                                "[red]Cannot Repair - too many choices! Manual intervention required.[/red]"
+                            )
                             console.print()
 
                 else:
-
                     for incorrect in results["incorrect"]:
                         print_incorrect_line(incorrect)
                         print_potential_asset_matches(incorrect, assets)
                         console.print()
-
 
             if "missing" in results:
                 # filename doesn't exist within the asset dictionary.
@@ -225,7 +228,6 @@ def validate(*args, **kwargs):
                 console.print(f"[green]Changes saved to `{doc.filename.name}`[/green]")
 
             console.print()
-
 
     # stop the clock
     search_end_time = datetime.now()

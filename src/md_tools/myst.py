@@ -48,8 +48,6 @@ from .markdown import (
 # -------------
 
 
-
-
 class DirectiveFence:
     """
     This object keeps track of whether we are iterating through a code
@@ -60,6 +58,9 @@ class DirectiveFence:
 
     exclude_tails - bool - indicates we want to ignore the start and end
     of the block
+
+    directive_name - Optional[str] - The name of the directive block. If
+    it is None, we include all directive blocks.
 
     # Usage
 
@@ -76,14 +77,28 @@ class DirectiveFence:
 
     """
 
-    def __init__(self, **kwargs):
-
+    def __init__(
+        self,
+        exclude_tails: bool = False,
+        directive_name: Optional[str] = None,
+        **kwargs,
+    ):
         self.is_code_fence = CodeFenceRule(backticks_only=True)
         self.is_directive = DirectiveStringRule()
 
+        self.directive_name = directive_name
+
         self.in_fence = False
 
-        self.exclude_tails = kwargs.get("exclude_tails", False)
+        self.exclude_tails = exclude_tails
+
+    def _correct_directive_name(self) -> bool:
+        """ """
+
+        if self.directive_name is None:
+            return True
+
+        return self.directive_name == self.is_directive.result.directivename
 
     def __call__(self, line: str = None) -> bool:
         # Are we in a block?
@@ -107,14 +122,14 @@ class DirectiveFence:
         if self.is_code_fence(line):
             result = self.is_code_fence.result
 
-            if self.is_directive(result.arguments):
-
+            if self.is_directive(result.arguments) and self._correct_directive_name():
                 self.in_fence = True
 
                 return True if not self.exclude_tails else False
 
         # We are not in a directive block
         return False
+
 
 class YAMLFence:
     """
@@ -138,7 +153,6 @@ class YAMLFence:
     """
 
     def __init__(self, **kwargs):
-
         self.is_yaml_fence = YamlBlockRule()
         self.in_fence = False
 
@@ -146,7 +160,6 @@ class YAMLFence:
         # Are we in a block?
 
         if self.in_fence:
-
             # Are we at the end?
             if self.is_yaml_fence(line):
                 self.in_fence = False
@@ -166,10 +179,10 @@ class YAMLFence:
         return False
 
 
-
 def inside_toctree(
     lines: Optional[Sequence[str]] = None,
     start: int = 0,
+    directive_name: Optional[str] = None,
 ) -> Generator[LineNumber, None, None]:
     """
     This method will iterate through the lines in the sequence,
@@ -229,13 +242,14 @@ def inside_toctree(
     if lines is None:
         return  # this is effectively raising a StopIteration
 
-    in_directive_block = DirectiveFence(exclude_tails=True)
+    in_directive_block = DirectiveFence(
+        exclude_tails=True,
+        directive_name=directive_name,
+    )
     in_yaml_block = YAMLFence()
 
     for i, line in enumerate(lines, start=start):
-
         if in_directive_block(line):
-
             # Are we in a YAML block
             if in_yaml_block(line):
                 continue

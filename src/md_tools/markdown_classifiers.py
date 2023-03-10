@@ -472,15 +472,13 @@ class CodeFenceRule:
 
         """
 
-
         self._result = None
 
-        self._backticks_only = kwargs.get('backticks_only', False)
+        self._backticks_only = kwargs.get("backticks_only", False)
 
         self._build_regex()
 
     def _build_regex(self):
-
         expression = r"^\s*(?:`{3,}|~{3,})(?:\s*)(?P<arguments>.*?)(?:\s*)$"
 
         if self._backticks_only:
@@ -537,6 +535,7 @@ class YamlBlockRule:
         m = self._regex.match(text)
         return m is not None
 
+
 class DirectiveStringRuleResult(NamedTuple):
     """ """
 
@@ -588,15 +587,15 @@ class DirectiveStringRule:
 
     @property
     def result(self) -> Optional[DirectiveStringRuleResult]:
-        """
-        """
+        """ """
         return self._result
 
     def __call__(self, text: str = None) -> bool:
-        """
-        """
+        """ """
         m = self._regex.match(text)
 
-        self._result = DirectiveStringRuleResult(**m.groupdict()) if m is not None else None
+        self._result = (
+            DirectiveStringRuleResult(**m.groupdict()) if m is not None else None
+        )
 
         return self._result is not None
