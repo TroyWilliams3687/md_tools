@@ -261,7 +261,7 @@ def inside_toctree(
             yield LineNumber(i, line)
 
 
-def toctree_links(link:str, document:Path, root:Path) -> Optional[list[Path]]:
+def toctree_links(link: str, document: Path, root: Path) -> Optional[list[Path]]:
     """
     This method is designed to process lines within a `toctree` directive.
     Each line represent a link to a file within the documentation
@@ -309,7 +309,6 @@ def toctree_links(link:str, document:Path, root:Path) -> Optional[list[Path]]:
     if len(link) == 0:
         return None
 
-
     resolved_link = None
 
     if link.startswith("/"):
@@ -318,24 +317,25 @@ def toctree_links(link:str, document:Path, root:Path) -> Optional[list[Path]]:
         resolved_link = (root / Path(*Path(link).parts[1:])).resolve()
 
     else:
-        # we have a relative string
+        # we have a relative string, combine it with the document
+        # parent
 
-        resolved_link = (root/ document.parent / Path(link)).resolve()
+        resolved_link = (root / document.parent / Path(link)).resolve()
+
+    # NOTE: calling resolve will resolve the `..` and `.` that may be in
+    # the path
 
     # Do we have any wildcards in the path?
-    if m:=[i for i, p in enumerate(resolved_link.parts) if '*' in p]:
-
+    if m := [i for i, p in enumerate(resolved_link.parts) if "*" in p]:
         # cover these basic cases - anything more advanced can be dealt
-        # with later - we'll only deal with one wildcard, namely the asterix
+        # with later - we'll only deal with ONE wildcard in the path,
+        # namely the asterix
 
         # 1. *
         # 2. index*
         # 3. *index
         # 4. test/*
 
-        # run some prototyping to see how it behaves
-
-        # create a function to process the *
         index = m.pop()
         search_path = Path(*resolved_link.parts[:index])
 
@@ -344,7 +344,4 @@ def toctree_links(link:str, document:Path, root:Path) -> Optional[list[Path]]:
         ]
 
     else:
-
         return [resolved_link]
-
-

@@ -163,9 +163,7 @@ def graph(*args, **kwargs):
 
         # - it supports globs, so *, index* or *.md works
 
-
     # -----------
-
 
     # To construct the graph, we only need the relative paths to the
     # Markdown files stored in an efficient structure
