@@ -610,30 +610,30 @@ def find_all_files(root_path: Path) -> dict:
     return assets
 
 
-def reverse_relative_links(
-    md_files: Sequence[MarkdownDocument], root: Path = None
-) -> dict:
-    """
-    Given a sequence of MarkdownDocument objects, construct a dictionary
-    keyed by the filename of the document storing the list of relative
-    links within the document.
+# def reverse_relative_links(
+#     md_files: Sequence[MarkdownDocument], root: Path = None
+# ) -> dict:
+#     """
+#     Given a sequence of MarkdownDocument objects, construct a dictionary
+#     keyed by the filename of the document storing the list of relative
+#     links within the document.
 
-    # Return
+#     # Return
 
-    a dictionary
+#     a dictionary
 
-    """
+#     """
 
-    md_link_lookup = {}
+#     md_link_lookup = {}
 
-    for md in md_files:
-        key = md.filename
+#     for md in md_files:
+#         key = md.filename
 
-        if root:
-            key = key.relative_to(root)
+#         if root:
+#             key = str(key.relative_to(root))
 
-        for ll in md.relative_links:
-            for match in ll.matches:
-                md_link_lookup.setdefault(key, set()).add(match.url)
+#         for ll in md.relative_links:
+#             for match in ll.matches:
+#                 md_link_lookup.setdefault(key, set()).add(match.url)
 
-    return md_link_lookup
+#     return md_link_lookup

@@ -24,6 +24,9 @@ import time
 
 from pathlib import Path
 from datetime import timedelta
+from collections.abc import Sequence
+from typing import Optional
+from queue import SimpleQueue
 
 # ------------
 # 3rd Party - From pip
@@ -43,14 +46,81 @@ from .markdown import (
     MarkdownDocument,
     find_markdown_files,
     find_all_files,
-    reverse_relative_links,
+    # reverse_relative_links,
 )
 
 from md_tools.myst import (
     inside_toctree,
+    toctree_links,
 )
 
+
 # -------------
+
+def get_relative_links(
+        document:MarkdownDocument,
+        root:Optional[Path]=None,
+    ) -> Optional[set[Path]]:
+    """
+    """
+
+    if root:
+        links = set()
+
+        for rl in document.relative_links:
+            for link in rl.matches:
+                if link.url.startswith("/"):
+                    links.add(Path(link.url[1:]))
+
+                else:
+                    full_url = document.filename.parent / Path(link.url)
+                    links.add(full_url.relative_to(root))
+
+    else:
+        links = set(
+            link.url for rl in document.relative_links for link in rl.matches
+        )
+
+    # should the link.url be absolute to the root?
+
+    for line in inside_toctree(document.contents, directive_name="toctree"):
+
+        discovered_links = toctree_links(line.line, document.filename, root)
+
+        if discovered_links:
+            for dl in discovered_links:
+
+                if root:
+                    links.add(dl.relative_to(root))
+                else:
+                    links.add(dl)
+
+    return links if links else None
+
+
+def reverse_relative_links(
+        md_files: Sequence[MarkdownDocument],
+        root: Path = None,
+    ) -> dict[str, set[Path]]:
+    """
+    Given a sequence of MarkdownDocument objects, construct a dictionary
+    keyed by the filename of the document storing the list of relative
+    links within the document.
+
+    # Return
+
+    a dictionary
+
+    """
+
+    md_link_lookup = {}
+
+    for md in md_files:
+
+        key = str(md.filename.relative_to(root)) if root else str(md.filename)
+        md_link_lookup[key] = get_relative_links(md, root)
+
+    return md_link_lookup
 
 
 def create_sub_graph(G, incoming_limit=1, outgoing_limit=0):
@@ -145,117 +215,106 @@ def graph(*args, **kwargs):
     search_start_time = time.monotonic_ns()
 
     markdown_files: set[MarkdownDocument] = find_markdown_files(root_path)
+    console.print(f'Files Found:      {len(markdown_files)}')
 
-    # -----------
-    # Test code - should be implemented in the Markdown file itself
+
+    md_links = reverse_relative_links(markdown_files, root=root_path)
+    console.print(f'Files with Links: {len(md_links)}')
+
+    # NOTE: the number of markdown files should equal the number of
+    # markdown files with links.
+
+    # for mdl in md_links:
+    #     console.print(f'{mdl}')
+        # console.print(f'{mdl}:{md_links[mdl]}')
+
+    # ----
+    # construct the edges of the graphs from the root node
+
+    keys = SimpleQueue() # documents to search
+    edges = [] # contains the tuples that define the edges
+    processed = set() # did we already see the document
 
     md = MarkdownDocument(root_path / document)
 
-    # console.print(md.filename)
-    for line in inside_toctree(md.contents, directive_name="toctree"):
-        console.print(line)
+    # add the first document
+    keys.put(str(md.filename.relative_to(root_path)))
 
-        # - If the line is not empty, assume it points to a file
-        # - The file can be absolute or relative
-        # - an absolute file starts with a / while a relative file does not
-        # - The absolute file is absolute from the root_path
-        # - The relative file is relative to the document it is in
+    while not keys.empty():
 
-        # - it supports globs, so *, index* or *.md works
+        k = keys.get()
+        processed.add(k)
 
-    # -----------
+        if k in md_links and md_links[k]:
 
-    # To construct the graph, we only need the relative paths to the
-    # Markdown files stored in an efficient structure
+            for node in md_links[k]:
 
-    # the myst structured markdown files have the concept of toctree
-    # blocks (```{toctree}), these can have the file links. need to be
-    # able to find these as well.
+                node_key = str(node)
 
-    # add a parser that looks for toctree blocks and extracts the files
-    # https://sphinx-doc-zh.readthedocs.io/en/latest/markup/toctree.html
+                console.print(f'[cyan]EDGE:[/cyan] [green]{k} -> {node_key}[/green]')
 
-    # basically we need a toctree parser or variable added to the
-    # MarkdownDocument object
-    # all it does is contain the tuple of things that are not keywords
-    # can contain:
-    # - absolute links <- to the source directory
-    # - relative links <- to the document
-    # - glob matches
+                edges.append((k, node_key))
 
-    # would need a method that takes the markdown object and the
-    # contents of the toctree and adds links
-
-    # md_links = reverse_relative_links(markdown_files, root=root_path)
-
-    # if document in md_links:
-    #     console.print(document)
+                if node_key not in processed:
+                    keys.put(node_key)
 
     # ----
-    # We want to build the DAG from the document
+    console.print()
+    console.print(f'Edges = {len(edges)}')
+
+    # At this point we have edges, we can construct the graph
+    console.print("Constructing DAG...")
+
+    # construct the DAG
+    G = nx.DiGraph()
+
+    G.add_edges_from(edges)
+
+    console.print(f"Total Nodes:  {len(G)}")
+    console.print(f"Degree:       {len(G.degree)}")
+    console.print(f"Degree (in):  {len(G.in_degree)}")
+    console.print(f"Degree (out): {len(G.out_degree)}")
+
+    sub_graph = create_sub_graph(G, incoming_limit=1, outgoing_limit=0)
+
+    # -----
+    # Plot the Graph
+
+    console.print("Plotting Graph...")
+
+    fig = plt.figure(figsize=(15, 10))
+    ax = fig.add_axes((0, 0, 1, 1))
+
+    g_plot = G #sub_graph
+
+    # https://networkx.org/documentation/stable//reference/drawing.html#module-networkx.drawing.layout
+    # Other graph options
+    # kamada_kawai_layout, # this works well <- requires scipy to be installed
+    # shell_layout
+    # circular_layout
+    # planar_layout
+    # spiral_layout
+    # spring_layout
+
+    nx.draw_networkx(
+        g_plot,
+        ax=ax,
+        pos=nx.spring_layout(g_plot),
+        with_labels=True,
+        font_size=10,
+        font_weight="bold",
+    )
+
+    plt.show()
+
 
     # stop the clock
     search_end_time = time.monotonic_ns()
 
     console.print()
-    # console.print(f"[cyan]Started:  {search_start_time}[/cyan]")
-    # console.print(f"[cyan]Finished: {search_end_time}[/cyan]")
     console.print(
         f"[cyan]Elapsed:  {timedelta(microseconds=(search_end_time - search_start_time)/1000)}[/cyan]"
     )
     console.print()
 
-    # # --------
-    # markdown_files = find_markdown_files(root_path)
 
-    # # To construct the graph, we only need the relative paths to the
-    # # Markdown files stored in an efficient structure
-
-    # md_links = reverse_relative_links(markdown_files, root=root_path)
-
-    # edges = construct_edges(md_links)
-
-    # # At this point we have edges, we can construct the graph
-    # console.print("Constructing DAG...")
-
-    # # construct the DAG
-    # G = nx.DiGraph()
-
-    # G.add_edges_from(edges)
-
-    # console.print(f"Total Nodes:  {len(G)}")
-    # console.print(f"Degree:       {len(G.degree)}")
-    # console.print(f"Degree (in):  {len(G.in_degree)}")
-    # console.print(f"Degree (out): {len(G.out_degree)}")
-
-    # sub_graph = create_sub_graph(G, incoming_limit=1, outgoing_limit=0)
-
-    # # -----
-    # # Plot the Graph
-
-    # console.print("Plotting Graph...")
-
-    # fig = plt.figure(figsize=(15, 10))
-    # ax = fig.add_axes((0, 0, 1, 1))
-
-    # g_plot = sub_graph
-
-    # # https://networkx.org/documentation/stable//reference/drawing.html#module-networkx.drawing.layout
-    # # Other graph options
-    # # kamada_kawai_layout, # this works well <- requires scipy to be installed
-    # # shell_layout
-    # # circular_layout
-    # # planar_layout
-    # # spiral_layout
-    # # spring_layout
-
-    # nx.draw_networkx(
-    #     g_plot,
-    #     ax=ax,
-    #     pos=nx.spring_layout(g_plot),
-    #     with_labels=True,
-    #     font_size=10,
-    #     font_weight="bold",
-    # )
-
-    # plt.show()
