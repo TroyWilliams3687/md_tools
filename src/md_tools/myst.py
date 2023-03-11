@@ -261,34 +261,90 @@ def inside_toctree(
             yield LineNumber(i, line)
 
 
-def toctree_links(link:str, document:Path, root:Path) -> Optional[Path]:
+def toctree_links(link:str, document:Path, root:Path) -> Optional[list[Path]]:
     """
-    Given a link from a markdown file we assume it represents a file
-    on the file system. The string can be:
+    This method is designed to process lines within a `toctree` directive.
+    Each line represent a link to a file within the documentation
+    structure. It assumes all documentation is stored within a `root`
+    folder and that we are examining the `toctree` from the `document`.
+    This method will look at one `link` at a time.
 
-    - A file that is absolute or relative
+    If the file exists, it will return the full path to the link
+    relative to the `root`.
+
+    It is assumed that a link refers to a file:
+
+    - It can be referred to by an absolute or relative path
+
     - An absolute file starts with a / while a relative file does not
+
     - The absolute file is absolute from the root_path
         - root = /src/docs
         - link = /help/index.md
         - path -> /src/docs/help/index.md
+
     - The relative file is relative to the document it is in
         - root = /src/docs
         - link = help/index.md
         - document = test/test.md
         - path -> /src/docs/test/help/index.md
 
-    - it supports globs, so *, index* or *.md are acceptable
+    - it supports globs, so *, index*, index/* or *.md are acceptable
+
+    # Args
+
+    link - A string representing the path to the file(s)
+
+    document - The path of the document that the link is from. It should
+    be relative to the `root`
+
+    root - The full path to the documentation root folder.
+
+    # Return
+
+    A full Path pointing to the file in the link
 
     """
 
     if len(link) == 0:
         return None
 
-    # do we have an absolute string
+
+    resolved_link = None
+
     if link.startswith("/"):
-        return root / Path(link)
+        # we have an absolute string, combine it with root
+
+        resolved_link = (root / Path(*Path(link).parts[1:])).resolve()
 
     else:
         # we have a relative string
-        return document.parent / Path(link)
+
+        resolved_link = (root/ document.parent / Path(link)).resolve()
+
+    # Do we have any wildcards in the path?
+    if m:=[i for i, p in enumerate(resolved_link.parts) if '*' in p]:
+
+        # cover these basic cases - anything more advanced can be dealt
+        # with later - we'll only deal with one wildcard, namely the asterix
+
+        # 1. *
+        # 2. index*
+        # 3. *index
+        # 4. test/*
+
+        # run some prototyping to see how it behaves
+
+        # create a function to process the *
+        index = m.pop()
+        search_path = Path(*resolved_link.parts[:index])
+
+        return [
+            f for f in search_path.glob(resolved_link.parts[index]) if f != document
+        ]
+
+    else:
+
+        return [resolved_link]
+
+
