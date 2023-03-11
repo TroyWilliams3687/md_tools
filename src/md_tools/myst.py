@@ -261,9 +261,9 @@ def inside_toctree(
             yield LineNumber(i, line)
 
 
-def str_to_file(link:str, document:Path, root:Path) -> Optional[Path]:
+def toctree_links(link:str, document:Path, root:Path) -> Optional[Path]:
     """
-    Given a string from a markdown file we assume it represents a file
+    Given a link from a markdown file we assume it represents a file
     on the file system. The string can be:
 
     - A file that is absolute or relative

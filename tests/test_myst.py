@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from md_tools.myst import (
-    str_to_file,
+    toctree_links,
 )
 
 
@@ -34,7 +34,7 @@ from md_tools.myst import (
 
 
 # ----
-# Test str_to_file
+# Test toctree_links
 
 
 class StrToFileData(NamedTuple):
@@ -70,6 +70,6 @@ data.append(
 @pytest.mark.parametrize("data", data)
 def test_str_to_file(data):
 
-    result = str_to_file(data.value, data.document, data.root)
+    result = toctree_links(data.value, data.document, data.root)
 
     assert data.correct_result == result
