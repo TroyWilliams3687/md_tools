@@ -259,3 +259,36 @@ def inside_toctree(
                 continue
 
             yield LineNumber(i, line)
+
+
+def str_to_file(link:str, document:Path, root:Path) -> Optional[Path]:
+    """
+    Given a string from a markdown file we assume it represents a file
+    on the file system. The string can be:
+
+    - A file that is absolute or relative
+    - An absolute file starts with a / while a relative file does not
+    - The absolute file is absolute from the root_path
+        - root = /src/docs
+        - link = /help/index.md
+        - path -> /src/docs/help/index.md
+    - The relative file is relative to the document it is in
+        - root = /src/docs
+        - link = help/index.md
+        - document = test/test.md
+        - path -> /src/docs/test/help/index.md
+
+    - it supports globs, so *, index* or *.md are acceptable
+
+    """
+
+    if len(link) == 0:
+        return None
+
+    # do we have an absolute string
+    if link.startswith("/"):
+        return root / Path(link)
+
+    else:
+        # we have a relative string
+        return document.parent / Path(link)

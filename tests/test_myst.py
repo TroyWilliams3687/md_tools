@@ -20,7 +20,7 @@ import pytest
 from pathlib import Path
 from typing import NamedTuple
 
-from md_tools.common import (
+from md_tools.myst import (
     str_to_file,
 )
 
@@ -35,18 +35,6 @@ from md_tools.common import (
 
 # ----
 # Test str_to_file
-
-# data = []
-
-# data.append(("https://github.com/tomduck/pandoc-fignos", True))
-# data.append(("http://github.com/tomduck/pandoc-fignos", True))
-# data.append(("ftp://github.com/tomduck/pandoc-fignos", True))
-
-# data.append(("http://github.com/ tomduck/ pandoc-fignos", False))
-# data.append(("ftp:// github.com/ tomduck/ pandoc-fignos", False))
-# data.append(("ftps://github.com/tomduck/pandoc-fignos", False))
-# data.append(("www.google.ca", False))
-# data.append(("google.com", False))
 
 
 class StrToFileData(NamedTuple):
