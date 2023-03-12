@@ -30,6 +30,8 @@ from md_tools.markdown_classifiers import (
     CodeFenceRuleResult,
     CodeFenceRule,
     YamlBlockRule,
+    DirectiveStringRuleResult,
+    DirectiveStringRule,
 )
 
 # -------------
@@ -609,6 +611,32 @@ def test_CodeFenceRule_match(data):
 
     assert rule(value) == result
 
+data = []
+data.append(("```   bash hello world", True))
+data.append(("``` bash hello world", True))
+data.append(("~~~", False))
+data.append(("     ~~~   ", False))
+data.append(("```", True))
+data.append(("```    ", True))
+data.append(("```    python", True))
+data.append(("     ```    python", True))
+data.append(("     ``````    python", True))
+data.append(("  ~~~~    python", False))
+data.append(("```````python", True))
+
+data.append(("     ``~`    python", False))
+data.append(("     `~~`    python", False))
+data.append(("     ``~`    python", False))
+
+
+@pytest.mark.parametrize("data", data)
+def test_CodeFenceRule_match(data):
+    value, result = data
+    rule = CodeFenceRule(backticks_only=True)
+
+    assert rule(value) == result
+
+
 
 data = []
 
@@ -616,7 +644,7 @@ data.append(
     (
         "```   bash hello world",
         CodeFenceRuleResult(
-            infostring="bash",
+            arguments="bash hello world",
         ),
     )
 )
@@ -625,7 +653,27 @@ data.append(
     (
         "``` bash hello world",
         CodeFenceRuleResult(
-            infostring="bash",
+            arguments="bash hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "```    {admonition}    This is my admonition",
+        CodeFenceRuleResult(
+            arguments="{admonition}    This is my admonition",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "```    {admonition}    This is my admonition      ",
+        CodeFenceRuleResult(
+            arguments="{admonition}    This is my admonition",
         ),
     )
 )
@@ -634,7 +682,7 @@ data.append(
     (
         "~~~",
         CodeFenceRuleResult(
-            infostring="",
+            arguments="",
         ),
     )
 )
@@ -643,7 +691,7 @@ data.append(
     (
         "     ~~~   ",
         CodeFenceRuleResult(
-            infostring="",
+            arguments="",
         ),
     )
 )
@@ -652,7 +700,7 @@ data.append(
     (
         "```",
         CodeFenceRuleResult(
-            infostring="",
+            arguments="",
         ),
     )
 )
@@ -662,7 +710,7 @@ data.append(
     (
         "```    ",
         CodeFenceRuleResult(
-            infostring="",
+            arguments="",
         ),
     )
 )
@@ -671,7 +719,7 @@ data.append(
     (
         "```    python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -680,7 +728,7 @@ data.append(
     (
         "     ```    python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -689,7 +737,7 @@ data.append(
     (
         "     ``````    python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -699,7 +747,7 @@ data.append(
     (
         "  ~~~~    python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -708,7 +756,7 @@ data.append(
     (
         "```````python",
         CodeFenceRuleResult(
-            infostring="python",
+            arguments="python",
         ),
     )
 )
@@ -722,6 +770,145 @@ data.append(("     ``~`    python", None))
 def test_CodeFenceRule_result(data):
     value, result = data
     rule = CodeFenceRule()
+
+    rule(value)
+    assert rule.result == result
+
+
+data = []
+
+data.append(
+    (
+        "```   bash hello world",
+        CodeFenceRuleResult(
+            arguments="bash hello world",
+        ),
+    )
+)
+
+data.append(
+    (
+        "``` bash hello world",
+        CodeFenceRuleResult(
+            arguments="bash hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "```    {admonition}    This is my admonition",
+        CodeFenceRuleResult(
+            arguments="{admonition}    This is my admonition",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "```    {admonition}    This is my admonition      ",
+        CodeFenceRuleResult(
+            arguments="{admonition}    This is my admonition",
+        ),
+    )
+)
+
+data.append(
+    (
+        "~~~",
+        None,
+    )
+)
+
+data.append(
+    (
+        "     ~~~   ",
+        None,
+    )
+)
+
+data.append(
+    (
+        "```",
+        CodeFenceRuleResult(
+            arguments="",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "```    ",
+        CodeFenceRuleResult(
+            arguments="",
+        ),
+    )
+)
+
+data.append(
+    (
+        "```    python",
+        CodeFenceRuleResult(
+            arguments="python",
+        ),
+    )
+)
+
+data.append(
+    (
+        "~~~    python",
+        None,
+    )
+)
+
+data.append(
+    (
+        "     ```    python",
+        CodeFenceRuleResult(
+            arguments="python",
+        ),
+    )
+)
+
+data.append(
+    (
+        "     ``````    python",
+        CodeFenceRuleResult(
+            arguments="python",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "  ~~~~    python",
+        None,
+    )
+)
+
+data.append(
+    (
+        "```````python",
+        CodeFenceRuleResult(
+            arguments="python",
+        ),
+    )
+)
+
+data.append(("     ``~`    python", None))
+data.append(("     `~~`    python", None))
+data.append(("     ``~`    python", None))
+
+
+
+@pytest.mark.parametrize("data", data)
+def test_CodeFenceRule_result(data):
+    value, result = data
+    rule = CodeFenceRule(backticks_only=True)
 
     rule(value)
     assert rule.result == result
@@ -758,6 +945,129 @@ def test_YamlBlockRule_result(data):
     rule = YamlBlockRule()
 
     assert rule(value) == result
+
+
+# ----------------
+# Test - DirectiveStringRule
+
+data = []
+
+
+data.append(("   ```text", False))
+data.append(("```````python", False))
+data.append(("  ~~~~    python", False))
+data.append(("     ``````    python", False))
+data.append((" python", False))
+data.append(("   python", False))
+data.append(("python rocks", False))
+data.append(("admonition}    This is my admonition", False))
+data.append(("```{admonition}", False))
+
+
+data.append(("{admonition}",True))
+data.append(("{admonition}  hello world",True))
+data.append(("   {admonition}  hello world",True))
+data.append(("{admonition} This is my admonition",True))
+data.append(("    {admonition}    This is my admonition",True))
+
+
+
+@pytest.mark.parametrize("data", data)
+def test_DirectiveStringRule_match(data):
+    value, result = data
+    rule = DirectiveStringRule()
+
+    assert rule(value) == result
+
+
+data = []
+
+data.append(
+    (
+        "{admonition}",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="",
+        ),
+    )
+)
+
+data.append(
+    (
+        "{admonition}  hello world",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="hello world",
+        ),
+    )
+)
+
+data.append(
+    (
+        "   {admonition}  hello world",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "   {admonition}  hello world    ",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        "{admonition}      hello world",
+        DirectiveStringRuleResult(
+            directivename="admonition",
+            arguments="hello world",
+        ),
+    )
+)
+
+
+data.append(
+    (
+        " python",
+        None,
+    )
+)
+
+data.append(
+    (
+        " python  ",
+        None,
+    )
+)
+
+data.append(
+    (
+        "```{admonition}      hello world",
+        None,
+    )
+)
+
+
+@pytest.mark.parametrize("data", data)
+def test_DirectiveStringRule_result(data):
+    value, result = data
+    rule = DirectiveStringRule()
+
+    rule(value)
+    assert rule.result == result
+
+
+
+
 
 
 # # ----------

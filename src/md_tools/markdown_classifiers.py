@@ -428,7 +428,7 @@ class AbsoluteURLRule:
 class CodeFenceRuleResult(NamedTuple):
     """ """
 
-    infostring: Optional[str]
+    arguments: Optional[str]
 
 
 class CodeFenceRule:
@@ -440,7 +440,7 @@ class CodeFenceRule:
     - cannot be mixed backticks and tildes
     - can be as many leading spaces before the code fence
     - can have an info string following the code fence
-    - the infostring is the first word after the opening of the code
+    - the arguments are the words after the opening of the code
       fence
     - can have as many spaces as is needed after the code fence and
       before the info string
@@ -463,16 +463,31 @@ class CodeFenceRule:
     """
 
     def __init__(self, **kwargs):
-        self._build_regex()
+        """
+
+        # kwargs
+
+        backticks_only - bool - indicates if we want to restrict the
+        code fence rule to backticks only.
+
+        """
+
         self._result = None
 
+        self._backticks_only = kwargs.get("backticks_only", False)
+
+        self._build_regex()
+
     def _build_regex(self):
-        self._regex = re.compile(
-            r"^\s*(?:`{3,}|~{3,})\s*(?P<infostring>\w*).*$",
-        )
+        expression = r"^\s*(?:`{3,}|~{3,})(?:\s*)(?P<arguments>.*?)(?:\s*)$"
+
+        if self._backticks_only:
+            expression = r"^\s*(?:`{3,})(?:\s*)(?P<arguments>.*?)(?:\s*)$"
+
+        self._regex = re.compile(expression)
 
     @property
-    def result(self) -> Optional[AbsoluteURLRuleResult]:
+    def result(self) -> Optional[CodeFenceRuleResult]:
         """
         The list of links that matched the last selection.
         """
@@ -519,3 +534,68 @@ class YamlBlockRule:
         """
         m = self._regex.match(text)
         return m is not None
+
+
+class DirectiveStringRuleResult(NamedTuple):
+    """ """
+
+    directivename: str
+    arguments: Optional[str]
+
+
+class DirectiveStringRule:
+    """
+    Examines the string and checks to see if it matches a directive string
+
+    This link defines the directive structure:
+    https://myst-parser.readthedocs.io/en/v0.16.1/syntax/syntax.html?highlight=directives#directives-a-block-level-extension-point)
+
+    The directive is the triple-backtics and curly brackets with
+    optional arguments following:
+
+    ```{directivename} arguments
+
+    This Rule will simply test the string after the code block backtics.
+    It assumes that the correct code block has been discovered with the
+    CodeFenceRule and that this rule is applied to the arguments portion.
+
+    # Assumptions
+
+    We'll assume
+
+    - the directive wrapped in curly braces is mandatory
+
+    - that you can have any number of spaces before the
+    opening curly brace and after the closing brace
+
+    - The arguments are optional
+
+    - That you can have any number of spaces before or after the arguments
+
+    - Leading or trailing spaces are trimmed
+
+    """
+
+    def __init__(self, **kwargs):
+        self._build_regex()
+        self._result = None
+
+    def _build_regex(self):
+        self._regex = re.compile(
+            r"^(?:\s*){(?P<directivename>.*?)}(?:\s*)(?P<arguments>.*?)(?:\s*)$",
+        )
+
+    @property
+    def result(self) -> Optional[DirectiveStringRuleResult]:
+        """ """
+        return self._result
+
+    def __call__(self, text: str = None) -> bool:
+        """ """
+        m = self._regex.match(text)
+
+        self._result = (
+            DirectiveStringRuleResult(**m.groupdict()) if m is not None else None
+        )
+
+        return self._result is not None

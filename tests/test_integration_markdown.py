@@ -37,8 +37,13 @@ from md_tools.markdown import (
     ValidationIssue,
     count_all_words,
     CountResult,
+    LineNumber,
 )
 
+from md_tools.myst import (
+    inside_toctree,
+    DirectiveFence,
+)
 
 # ----
 # Test markdown_links
@@ -855,5 +860,175 @@ def test_count_all_words(tmp_path, data):
         documents.append(MarkdownDocument(p))
 
     results = count_all_words(documents)
+
+    assert valid_results == results
+
+# ----
+# Test DirectiveFence
+
+
+data = []
+
+data.append(("``` python", False))
+data.append(("```     python", False))
+data.append(("```     python    ", False))
+
+
+data.append(("```{directive}", True))
+data.append(("```{toctree}", True))
+
+
+@pytest.mark.parametrize("data", data)
+def test_directivefence_match(data):
+    value, result = data
+
+    rule = DirectiveFence()
+
+    assert rule(value) == result
+
+
+data = []
+
+
+data.append(("```{directive}", "directive", True))
+data.append(("```{toctree}",   "toctree", True))
+
+data.append(("```{directive}", "test", False))
+data.append(("```{toctree}",   "test", False))
+
+
+@pytest.mark.parametrize("data", data)
+def test_directivefence_specific_match(data):
+    value, directive_name, result = data
+
+    rule = DirectiveFence(directive_name=directive_name)
+
+    assert rule(value) == result
+
+# ----
+# Test inside_toctree
+
+
+content = []
+directive_names = []
+results = []
+
+content.append(
+    [
+        "This is a line",
+        "This is a line",
+        "```    {toctree}    ",
+        "",
+        "",
+        "---",
+        "lineno-start: 10",
+        "emphasize-lines: 1, 3",
+        "---",
+        "*",
+        "index.md",
+        "index_test.md",
+        "",
+        "",
+        "```",
+        "",
+        "``` python",
+        "import x",
+        "x.show()",
+        "",
+        "```",
+    ]
+)
+
+directive_names.append(None)
+
+results.append(
+    [
+    LineNumber(number=3, line=''),
+    LineNumber(number=4, line=''),
+    LineNumber(number=9, line='*'),
+    LineNumber(number=10, line='index.md'),
+    LineNumber(number=11, line='index_test.md'),
+    LineNumber(number=12, line=''),
+    LineNumber(number=13, line=''),
+    ]
+)
+
+content.append(
+    [
+        "This is a line",
+        "This is a line",
+        "```{note}",
+        "Right now, the comments are left in place so that we can have examples of how to build things. But this should represent the landing page and contain the required information. The toctree should be modified to only show Designer, Analyzer and Release Notes.",
+        "```",
+        "",
+        "``` python",
+        "import x",
+        "x.show()",
+        "",
+        "```",
+    ]
+)
+
+directive_names.append("toctree")
+
+results.append(
+    [],
+)
+
+
+content.append(
+    [
+        "This is a line",
+        "This is a line",
+        "```{note}",
+        "Right now, the comments are left in place so that we can have examples of how to build things. But this should represent the landing page and contain the required information. The toctree should be modified to only show Designer, Analyzer and Release Notes.",
+        "```",
+        "",
+        "``` python",
+        "import x",
+        "x.show()",
+        "",
+        "```",
+         "```    {toctree}    ",
+        "",
+        "",
+        "---",
+        "lineno-start: 10",
+        "emphasize-lines: 1, 3",
+        "---",
+        "*",
+        "index.md",
+        "index_test.md",
+        "",
+        "",
+        "```",
+    ]
+)
+
+directive_names.append("toctree")
+
+results.append(
+    [
+    LineNumber(number=12, line=''),
+    LineNumber(number=13, line=''),
+    LineNumber(number=18, line='*'),
+    LineNumber(number=19, line='index.md'),
+    LineNumber(number=20, line='index_test.md'),
+    LineNumber(number=21, line=''),
+    LineNumber(number=22, line='')
+    ],
+)
+
+
+data = zip(content, directive_names, results)
+
+@pytest.mark.parametrize("data", data)
+def test_inside_toctree(tmp_path, data):
+    contents, directive_name, valid_results = data
+
+    results = list(inside_toctree(
+        contents,
+        directive_name=directive_name,
+    ))
 
     assert valid_results == results

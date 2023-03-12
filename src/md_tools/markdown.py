@@ -118,7 +118,8 @@ class LineNumber(NamedTuple):
 
 
 def outside_fence(
-    lines: Optional[Sequence[str]] = None, start: int = 0
+    lines: Optional[Sequence[str]] = None,
+    start: int = 0,
 ) -> Generator[LineNumber, None, None]:
     """
     This method will iterate through the lines in the sequence, skipping
@@ -450,7 +451,7 @@ class ValidationIssue(NamedTuple):
 def validate_markdown_relative_links(
     doc: MarkdownDocument,
     assets: dict[str, Path],
-    root: Optional[Path]=None,
+    root: Optional[Path] = None,
 ) -> dict:
     """
     Validate all the relative links within the markdown document by
@@ -478,20 +479,16 @@ def validate_markdown_relative_links(
 
     for rl in doc.all_relative_links:
         for link in rl.matches:
-
             match_path = Path(link.url)
 
             if not link.url.startswith("/") and root:
-
                 # This is a relative URL, attach it to the document URL
 
                 match_path = doc.filename.parent / Path(link.url)
                 match_path = Path("/") / match_path.resolve().relative_to(root)
 
             if match_path.name in assets:
-
                 for asset in assets[match_path.name]:
-
                     if match_path == asset:
                         break  # found a match
 
@@ -606,36 +603,37 @@ def find_all_files(root_path: Path) -> dict:
 
     for filename in root_path.rglob("*"):
         # add the asset to the correct folder, making sure it is relative to the root folder
-        assets.setdefault(filename.name, []).append(Path("/") / filename.relative_to(root_path))
+        assets.setdefault(filename.name, []).append(
+            Path("/") / filename.relative_to(root_path)
+        )
 
     return assets
 
 
-def reverse_relative_links(
-    md_files: Sequence[MarkdownDocument], root: Path = None
-) -> dict:
-    """
+# def reverse_relative_links(
+#     md_files: Sequence[MarkdownDocument], root: Path = None
+# ) -> dict:
+#     """
+#     Given a sequence of MarkdownDocument objects, construct a dictionary
+#     keyed by the filename of the document storing the list of relative
+#     links within the document.
 
-    Given a sequence of MarkdownDocument objects, construct a dictionary
-    keyed by the filename of the document storing the list of relative
-    links within the document.
+#     # Return
 
-    # Return
+#     a dictionary
 
-    a dictionary
+#     """
 
-    """
+#     md_link_lookup = {}
 
-    md_link_lookup = {}
+#     for md in md_files:
+#         key = md.filename
 
-    for md in md_files:
-        key = md.filename
+#         if root:
+#             key = str(key.relative_to(root))
 
-        if root:
-            key = key.relative_to(root)
+#         for ll in md.relative_links:
+#             for match in ll.matches:
+#                 md_link_lookup.setdefault(key, set()).add(match.url)
 
-        for ll in md.relative_links:
-            for match in ll.matches:
-                md_link_lookup.setdefault(key, set()).add(match.url)
-
-    return md_link_lookup
+#     return md_link_lookup
