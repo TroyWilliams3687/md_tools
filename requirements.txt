@@ -8,8 +8,9 @@
 click
 rich
 networkx
-matplotlib
-scipy
+# matplotlib
+# scipy
+pyvis
 
 # --------------
 # Additional Interesting Modules

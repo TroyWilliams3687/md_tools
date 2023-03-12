@@ -33,7 +33,9 @@ from queue import SimpleQueue
 
 import click
 import networkx as nx
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+
+from pyvis.network import Network
 
 from rich.console import Console
 
@@ -276,37 +278,42 @@ def graph(*args, **kwargs):
     console.print(f"Degree (out): {len(G.out_degree)}")
 
     sub_graph = create_sub_graph(G, incoming_limit=1, outgoing_limit=0)
+    g_plot = G #sub_graph
 
     # -----
     # Plot the Graph
 
-    console.print("Plotting Graph...")
-
-    fig = plt.figure(figsize=(15, 10))
-    ax = fig.add_axes((0, 0, 1, 1))
-
-    g_plot = G #sub_graph
-
-    # https://networkx.org/documentation/stable//reference/drawing.html#module-networkx.drawing.layout
-    # Other graph options
-    # kamada_kawai_layout, # this works well <- requires scipy to be installed
-    # shell_layout
-    # circular_layout
-    # planar_layout
-    # spiral_layout
-    # spring_layout
-
-    nx.draw_networkx(
-        g_plot,
-        ax=ax,
-        pos=nx.spring_layout(g_plot),
-        with_labels=True,
-        font_size=10,
-        font_weight="bold",
+    nt = Network(
+        '1500px',
+        '100%',
+        filter_menu=True,
+        select_menu=True,
     )
 
-    plt.show()
+    # populates the nodes and edges data structures
+    nt.from_nx(g_plot)
 
+    # nt.toggle_physics(True)
+    # nt.show_buttons(filter_=['physics'])
+    # the nt.show_buttons must be commented out if using the below
+
+    nt.set_options("""
+    "physics": {
+        "forceAtlas2Based": {
+          "theta": 0.45,
+          "springLength": 490,
+          "springConstant": 0.05,
+          "damping": 0.07,
+          "avoidOverlap": 0.39
+        },
+        "maxVelocity": 22,
+        "minVelocity": 0.36,
+        "solver": "forceAtlas2Based",
+        "timestep": 0.3
+        }
+    """)
+
+    nt.show('nx.html', notebook=False)
 
     # stop the clock
     search_end_time = time.monotonic_ns()
